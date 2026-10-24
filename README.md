@@ -1,31 +1,194 @@
 # Analizador Trifásico IoT
 
-> Instrumento electrónico industrial de **medición eléctrica trifásica** con conectividad **IoT**, pensado para instalaciones industriales y motores.
-> Incluye registro de consumo, variables eléctricas a múltiples escalas de tiempo, comunicación **Modbus RTU / RS-485** y enlace **Wi-Fi HaLow**.
+> Instrumento electrónico industrial de **medición eléctrica trifásica** con conectividad **IoT**.
+> Orientado a instalaciones industriales y motores: registro de consumo, variables eléctricas a múltiples escalas de tiempo, comunicación **Modbus RTU / RS-485** y enlace inalámbrico **Wi-Fi HaLow**.
+
+**Estado del diseño:** diagrama de bloques **V2 (07/10/2026)** — esquemáticos capturados, layout en curso.
 
 ---
 
-## 📋 Descripción del proyecto
+## 🧭 Diagrama de bloques (V2)
 
-El producto es un **medidor de calidad de energía trifásico** con capacidad IoT. El diseño actual cubre:
+Este es el diseño vigente. Toda decisión de hardware debe ser consistente con este diagrama.
 
-| Bloque | Función |
+```mermaid
+flowchart TB
+    RED["Red trifasica<br/>L1 / L2 / L3 / N"]
+
+    AC5["Hi-Link HLK-10M05<br/>5 V @ 2 A"]
+    AC3["Hi-Link<br/>3.3 V @ 1 A"]
+    SC["2x Supercapacitor<br/>HP-2R7-J306VYJ23<br/>5 V - 15 F / 3.2 W - 9 s"]
+    BUCK["Buck AP63203WU-7<br/>3.3 V @ 2 A"]
+
+    COND["Acondicionamiento<br/>Analogico"]
+    RN["RN8302B<br/>3 ADC tension ~800 mVpp<br/>4 ADC corriente ~150 mVpp"]
+    ISO["Aislamiento<br/>galvanico"]
+
+    MCU["ESP32-S3-WROOM"]
+
+    RS485["VISOM RSM3485PCT<br/>RS-485"]
+    HALOW["Quectel FGH100M<br/>Wi-Fi HaLow"]
+    SD["microSD"]
+    PROG["Programacion /<br/>monitoreo"]
+
+    RED --> AC5
+    RED --> AC3
+    RED --> COND
+    RED -->|"4 CT"| RN
+    COND -->|3 ADC tension| RN
+    RN --> ISO
+    ISO -->|"SPI 4 hilos + 2 GPIO"| MCU
+
+    AC5 --> SC
+    SC --> BUCK
+
+    BUCK -->|"500 mA"| MCU
+    BUCK -->|"10 mA"| RN
+    BUCK -->|"90 mA"| RS485
+    BUCK -->|"350 mA"| HALOW
+    BUCK -->|"200 mA"| SD
+
+    MCU -->|"UART TX/RX + 1 GPIO"| RS485
+    MCU -->|"6xSDIO / 4xSPI / 2xUART / 2xGPIO"| HALOW
+    MCU -->|"SPI 4 hilos"| SD
+    MCU -->|"USB D+/- -> JTAG"| PROG
+
+    style RED fill:#f9c6c6
+    style RN fill:#fdf0a8
+    style MCU fill:#d8d4f5
+    style COND fill:#c9e6b8
+    style SC fill:#c9dcf0
+    style SD fill:#c9dcf0
+    style PROG fill:#fdf0a8
+```
+
+---
+
+## 🔧 Arquitectura por bloque
+
+### 1. Entrada de potencia trifásica
+
+| Elemento | Componente | Notas |
+|---|---|---|
+| Entrada | **Red trifásica L1 / L2 / L3 / N** | Topología `3P4W` y `3P3W` |
+| Conector | **HX PJ-320A-3P DIP** (x4) | Entrada de potencia y CTs |
+| Puente rectificador | **BR-50126V-4P0G56** | Rectificación de la red |
+| Protección | **MOV-14D471K** (x3) + **FUSE_MOV_JFC2410** (x3) | Varistores + fusibles por fase |
+
+> Hoja: `THREE PHASES.SchDoc`
+
+### 2. Acondicionamiento analógico
+
+| Elemento | Descripción |
 |---|---|
-| **AFE metrológico** | RENERGY **RN8302B** — 7 ADC diferenciales, DSP de energía, mide V, I, P, Q, S, PF, THD |
-| **Alimentación AC/DC** | Entrada **90–528 VAC** (o 100–745 VDC) de red trifásica de 4 hilos |
-| **Riel digital** | Buck **AP63203WU-7** → 3V3_DIG (MCU, radio, RS-485, microSD) |
-| **Riel de precisión AFE** | LDO **TLV75733** → 3V3_AFE (bajo ruido para el AFE) |
-| **Riel aislado** | DC/DC aislado **B0503S-1WR3** (1500 VDC) → RS-485 aislado |
-| **RS-485** | **THVD1450** + aislador digital **ISO7731** (TX / RX / DE-RE) |
-| **Radio** | **Quectel FGH100MAAMD** (FGH100M, Morse Micro MM6108) — Wi-Fi HaLow sub-GHz |
-| **Procesamiento** | **ESP32-S3-WROOM-1-N4** + zócalo microSD para histórico |
-| **Tiempo** | RTC **PCF85063A** (I²C) + reloj de metrología RN8302B a **8.192 MHz** |
-| **Respaldo** | Supercapacitor 30 F para *Last Gasp* |
-| **Entrada de potencia** | MOV, fusible, puente rectificador **BR-50126V-4P0G56**, conector **HX PJ-320A-3P DIP** |
+| **Acondicionamiento Analógico** | Bloque de divisores resistivos de precisión y filtrado RC para las entradas de tensión y corriente del AFE |
 
-**Topología de medición soportada:** `3P4W` y `3P3W`.
+Alimenta al RN8302B con:
+- **3 ADC de tensión** → rango ≈ **800 mVpp**
+- **4 ADC de corriente** → rango ≈ **150 mVpp** (adaptativo según CT / Rogowski)
 
-> 📄 La especificación completa, con todas las derivaciones de sensado, reglas de convivencia entre bloques, mases (AGND / GND_DIG / GND_ISO) y la lista de compra, está en [`documentation/Especificacion de Arquitectura.md`](documentation/Especificacion%20de%20Arquitectura.md) — **léela antes de tocar el esquemático**.
+> Hoja: `THREE PHASES.SchDoc` (derivaciones) + `MEASURES.SchDoc`
+
+### 3. AFE metrológico
+
+| Elemento | Componente |
+|---|---|
+| Medidor | **RENERGY RN8302B** |
+| ADC de tensión | 3 canales diferenciales, ≈ 800 mVpp |
+| ADC de corriente | 4 canales diferenciales, ≈ 150 mVpp (adaptativo) |
+| Reloj de metrología | Cristal dedicado (**Crystal_049ss2**) |
+| Desacople | 4x 100 nF, 2x 10 µF, 1x 1 µF |
+
+Calcula V, I, P, Q, S, PF y THD internamente en su DSP de energía.
+
+> Hoja: `MEASURES.SchDoc`
+
+### 4. Aislamiento galvánico
+
+| Elemento | Componente |
+|---|---|
+| Aislador digital | **TI ISO7741** (`iso7741dwr`) |
+| Señales aisladas | **SPI (4 hilos) + 2 GPIO** entre RN8302B y ESP32-S3 |
+
+Mantiene el dominio de medición separado del dominio digital.
+
+> Hoja: `MEASURES.SchDoc`
+
+### 5. Procesamiento
+
+| Elemento | Componente |
+|---|---|
+| MCU | **ESP32-S3-WROOM-1-N4** |
+| Programación | **USB-C** (`CON_USB_TYPEC_16P`) → **JTAG** |
+| Monitorización | Puerto serie por USB |
+
+> Hoja: `MCU.SchDoc`
+
+### 6. Alimentación
+
+| Riel | Componente | Capacidad | Consumo |
+|---|---|---|---|
+| AC/DC principal | **Hi-Link HLK-10M05** | 5 V @ 2 A | — |
+| AC/DC auxiliar | **Hi-Link 3.3 V @ 1 A** | 3.3 V @ 1 A | — |
+| Respaldo | **2x Supercapacitor HP-2R7-J306VYJ23** | 5 V, 15 F equiv. → **3.2 W durante 9 s** | *Last Gasp* |
+| Riel digital | **Buck AP63203WU-7** | **3.3 V @ 2 A** | 1 150 mA (57 %) |
+
+> Hoja: `POWER.SchDoc`
+
+#### Presupuesto de corriente del riel 3.3 V
+
+| Carga | Consumo |
+|---|---:|
+| ESP32-S3-WROOM | 500 mA |
+| Quectel FGH100M (Wi-Fi HaLow) | 350 mA |
+| microSD | 200 mA |
+| VISOM RSM3485PCT (RS-485) | 90 mA |
+| RN8302B | 10 mA |
+| **Total** | **1 150 mA** |
+| Capacidad del buck | 2 000 mA |
+| **Margen** | **850 mA (42.5 %)** |
+
+### 7. Periféricos
+
+| Periférico | Componente | Interfaz con el ESP32-S3 | Consumo |
+|---|---|---|---|
+| **RS-485** | **VISOM RSM3485PCT** | **UART (TX/RX) + 1 GPIO** | 90 mA |
+| **Wi-Fi HaLow** | **Quectel FGH100M** | **6x SDIO / 4x SPI / 2x UART / 2x GPIO** | 350 mA |
+| **Almacenamiento** | **microSD** (`tf-card-9p`) | **SPI (4 hilos)** | 200 mA |
+
+> Hojas: `MCU.SchDoc`
+
+---
+
+## 📌 Mapa de interfaces del ESP32-S3-WROOM
+
+| Interfaz | Uso | Hacia |
+|---|---|---|
+| `SPI` (4 hilos) + `2x GPIO` | Bus de datos + control | RN8302B *(vía ISO7741)* |
+| `UART` (TX/RX) + `1x GPIO` | Modbus RTU | VISOM RSM3485PCT |
+| `6x SDIO` / `4x SPI` / `2x UART` / `2x GPIO` | Enlace de radio | Quectel FGH100M |
+| `SPI` (4 hilos) | Tarjeta de memoria | microSD |
+| `USB` (D+/D−) | Programación y monitor | JTAG → PC |
+
+---
+
+## ⚡ Arquitectura de energía
+
+```
+Red trifásica L1/L2/L3/N
+        │
+        ├──► Hi-Link HLK-10M05 (5 V @ 2 A) ──► 2x Supercap 15 F ──► Buck AP63203WU-7
+        │                                                              (3.3 V @ 2 A)
+        │                                                                   │
+        │                              ┌────────────────┬───────────────┬─┴─────────────┐
+        │                              ▼                ▼               ▼               ▼
+        │                          ESP32-S3         RN8302B         RSM3485PCT     FGH100M + microSD
+        │                          500 mA            10 mA            90 mA        350 + 200 mA
+        │
+        └──► Hi-Link 3.3 V @ 1 A  ──► (riel auxiliar)
+```
+
+El **supercapacitor** sostiene la alimentación **3.2 W durante 9 s** tras un corte de red, suficiente para cerrar el *Last Gasp*: guardar contadores críticos y notificar.
 
 ---
 
@@ -38,44 +201,64 @@ Analizador trifasico IoT/
 ├── .gitattributes
 │
 ├── hardware/
-│   ├── altium/                    ← Proyecto Altium Designer (fuente de verdad del diseño)
-│   │   ├── Analizador_trifasico_IoT_pcb.PrjPcb      ← archivo de proyecto (ábrelo con esto)
+│   ├── altium/                    ← Proyecto Altium Designer (fuente de verdad)
+│   │   ├── Analizador_trifasico_IoT_pcb.PrjPcb      ← ábrelo con este
 │   │   ├── Analizador_trifasico_IoT_pcb.PrjPcbStructure
 │   │   ├── MAIN.SchDoc            ← hoja raíz (jerarquía)
-│   │   ├── THREE PHASES.SchDoc    ← entrada de potencia trifásica
-│   │   ├── POWER.SchDoc           ← alimentación AC/DC y riales
-│   │   ├── MEASURES.SchDoc        ← AFE RN8302B + sensado
-│   │   ├── MCU.SchDoc             ← ESP32-S3, RS-485, microSD
+│   │   ├── THREE PHASES.SchDoc    ← entrada trifásica + acondicionamiento
+│   │   ├── POWER.SchDoc           ← alimentación y respaldo
+│   │   ├── MEASURES.SchDoc        ← RN8302B + ISO7741 + cristal
+│   │   ├── MCU.SchDoc             ← ESP32-S3, RS-485, microSD, USB-C
 │   │   └── Analizador_PCB.PcbDoc  ← layout de la PCB
 │   │
-│   └── libraries/                 ← Bibliotecas de componentes (compartidas)
-│       ├── Library_Analizador.LibPkg   ← paquete de biblioteca (empaqueta las 3 siguientes)
-│       ├── Schlib1.SchLib              ← símbolos esquemáticos (fuente editable)
-│       ├── PcbLib1.PcbLib              ← footprints PCB (fuente editable)
+│   └── libraries/                 ← Bibliotecas de componentes
+│       ├── Library_Analizador.LibPkg   ← paquete de biblioteca
+│       ├── Schlib1.SchLib              ← símbolos esquemáticos
+│       ├── PcbLib1.PcbLib              ← footprints PCB
 │       └── Library_Analizador.IntLib   ← biblioteca integrada compilada
 │
-├── documentation/                 ← Documentación del producto
-│   ├── Especificacion de Arquitectura.md   ← especificación técnica v2.0
-│   ├── diagrama de bloques.pdf
-│   └── Diagrama de bloquesv2.pdf
+├── documentation/
+│   ├── Diagrama de bloquesv2.pdf           ← ⭐ DIAGRAMA VIGENTE
+│   ├── diagrama de bloques.pdf             ← versión 1 (histórico)
+│   └── Especificacion de Arquitectura.md   ← especificación v2.0 (ver nota)
 │
-└── references/                    ← Referencias técnicas (datasheets, notas, diseños de referencia)
-    ├── datasheets/                ← datasheets de componentes
-    ├── application-notes/         ← notas de aplicación
-    └── reference-designs/         ← diseños de referencia y eval boards
+└── references/
+    ├── datasheets/
+    ├── application-notes/
+    └── reference-designs/
 ```
 
 ---
 
 ## 🔌 Hojas del esquemático
 
-| Hoja | Archivo | Contenido |
-|---|---|---|
-| 1 | `MAIN.SchDoc` | Hoja raíz. Solo contiene los *sheet symbols* hacia las demás. |
-| 2 | `THREE PHASES.SchDoc` | Entrada de red trifásica: MOV, fusible, puente rectificador, conector, CT/Rogowski. |
-| 3 | `POWER.SchDoc` | AC/DC, buck AP63203, LDO, ferrites, supercapacitor, aisladores, RS-485. |
-| 4 | `MEASURES.SchDoc` | RN8302B, aislador ISO7741, crystal 8.192 MHz, divisores, CTs. |
-| 5 | `MCU.SchDoc` | ESP32-S3-WROOM-1-N4, USB-C, RS-485, zócalo microSD. |
+| # | Archivo | Contenido | Componentes clave |
+|---|---|---|---|
+| 1 | `MAIN.SchDoc` | Hoja raíz: solo *sheet symbols* | — |
+| 2 | `THREE PHASES.SchDoc` | Entrada trifásica y protección | 4x HX PJ-320A-3P, BR-50126V, 3x MOV-14D471K, 3x FUSE_MOV_JFC2410 |
+| 3 | `POWER.SchDoc` | Alimentación, respaldo y rieles | HLK-10M05, HLK-5M03B, AP63203WU-7, 2x 30 F, ferritas, diodos Schottky |
+| 4 | `MEASURES.SchDoc` | AFE metrológico y aislamiento | RN8302B, ISO7741, cristal, 4x 100 nF |
+| 5 | `MCU.SchDoc` | Procesamiento y periféricos | ESP32-S3-WROOM-1-N4, RSM3485PCT, tf-card-9p, USB-C |
+
+---
+
+## ⚠️ Nota sobre la documentación
+
+> **`documentation/Especificacion de Arquitectura.md` (01/10/2026) está desactualizada respecto al diagrama V2 (07/10/2026).**
+>
+> La especificación describe una versión anterior de la arquitectura con componentes que **ya no están en el diseño**:
+>
+> | En la especificación | En el diseño V2 |
+> |---|---|
+> | Mornsun LD10-26B05 | **Hi-Link HLK-10M05** |
+> | TLV75733 como LDO AFE | *(eliminado)* |
+> | THVD1450 + ISO7731 + B0503S-1WR3 | **VISOM RSM3485PCT** (módulo integrado) |
+> | ISO7721 / ISO7731 | **ISO7741** |
+> | PCF85063A (RTC I²C) | *(no está en el diseño)* |
+> | MCU "pendiente / STM32" | **ESP32-S3-WROOM** *(decidido)* |
+> | SM712, MOV-20D821K, GDT | **MOV-14D471K** + fusibles |
+>
+> La especificación sigue siendo útil por sus **cálculos de derivación, criterios de mases (AGND / GND_DIG / GND_ISO), normativa y lista de compra**, pero **los componentes listados no son los del diseño actual**. Actualizarla es una tarea pendiente.
 
 ---
 
@@ -90,25 +273,25 @@ Analizador trifasico IoT/
 | `ESP32-S3_Datasheet_en.pdf` | Espressif ESP32-S3 — SoC |
 | `ESP32-S3_Technical_Reference_Manual_en.pdf` | Espressif ESP32-S3 — manual técnico de referencia |
 | `ESP32-S3-WROOM_Module.pdf` | Espressif ESP32-S3-WROOM-1-N4 — módulo |
-| `ISO7741DWR_Datasheet.pdf` | TI ISO7741 — aislador digital |
-| `Supercapacitor_Datasheet.pdf` | Supercapacitor 30 F |
+| `ISO7741DWR_Datasheet.pdf` | TI ISO7741 — aislador digital cuádruple |
+| `Supercapacitor_Datasheet.pdf` | Supercapacitor (HP-2R7-J306VYJ23) |
 
 ### `references/application-notes/`
 
 | Archivo | Contenido |
 |---|---|
-| `TI_DUF27A_Application_Note.pdf` | TI DUF27A — note de aplicación |
-| `TI_DUF27A_Layout.pdf` | TI DUF27A — guidelines de layout |
-| `wifi-halow-module-for-xiao.md` | Notas del módulo Wi-Fi HaLow para XIAO |
+| `TI_DUF27A_Application_Note.pdf` | TI DUF27A — nota de aplicación |
+| `TI_DUF27A_Layout.pdf` | TI DUF27A — guías de layout |
+| `wifi-halow-module-for-xiao.md` | Notas del módulo Wi-Fi HaLow |
 
 ### `references/reference-designs/`
 
 | Carpeta | Contenido |
 |---|---|
 | `EVAL-ADE9430/` | Analog Devices EVAL-ADE9430 — esquemático, layout y user guide (referencia de AFE trifásico) |
-| `WI-FI_HALOW_FGH100M_EXT01_V30/` | Módulo radio HaLow: PCB original en KiCad, esquemático PDF e importación a Altium |
-| `HX PJ-320A-3P DIP/` | Conector de audio 3.5 mm (HX PJ-320A-3P DIP) — footprint y símbolo Altium |
-| `TI_DCG_v3/` | `TI_DCG_v3_Gerber_ODB.zip` — archivos Gerber/ODB++ de referencia |
+| `WI-FI_HALOW_FGH100M_EXT01_V30/` | Módulo HaLow: PCB en KiCad, esquemático PDF e importación a Altium |
+| `HX PJ-320A-3P DIP/` | Conector HX PJ-320A-3P DIP — footprint y símbolo Altium |
+| `TI_DCG_v3/` | Gerber / ODB++ de referencia |
 
 ---
 
@@ -123,17 +306,13 @@ cd Analizador-Trifasico-IoT
 
 ### 2. Configurar las bibliotecas en Altium Designer
 
-Los esquemáticos referencian `Library_Analizador.IntLib`. Sin esta biblioteca, Altium mostrará los símbolos pero **no podrá actualizarlos** (*Update from Library*).
+Las hojas referencian `Library_Analizador.IntLib`. Sin ella, Altium muestra los símbolos pero no puede ejecutar *Update from Library*.
 
-En **Altium Designer 26**:
-
-1. `Preferences → Data Management → Libraries` → botón **Add** → seleccionar
-   `hardware/libraries/Library_Analizador.LibPkg`
-2. `Preferences → Data Management → Project-based Libraries` → **Add** → seleccionar la carpeta
-   `hardware/libraries/`
+1. `Preferences → Data Management → Libraries` → **Add** → `hardware/libraries/Library_Analizador.LibPkg`
+2. `Preferences → Data Management → Project-based Libraries` → **Add** → carpeta `hardware/libraries/`
 3. Reiniciar Altium
 
-> 💡 Los **footprints ya están embebidos** dentro de `Analizador_PCB.PcbDoc`, por lo que el layout se abre y se edita correctamente incluso sin instalar `PcbLib1.PcbLib`.
+> 💡 Los **footprints ya están embebidos** en `Analizador_PCB.PcbDoc`, así que el layout se abre y edita aunque no instales `PcbLib1.PcbLib`.
 
 ### 3. Abrir el proyecto
 
@@ -141,70 +320,77 @@ En **Altium Designer 26**:
 
 ---
 
-## ⚠️ Reglas de colaboración (importante)
+## ⚠️ Reglas de colaboración
 
-Los archivos `.SchDoc`, `.PcbDoc`, `.SchLib` y `.PcbLib` son **binarios** (contenedores OLE2). Esto implica:
+Los archivos `.SchDoc`, `.PcbDoc`, `.SchLib` y `.PcbLib` son **binarios** (contenedores OLE2):
 
 | Git **SÍ** puede | Git **NO** puede |
 |---|---|
 | Guardar el historial completo | Mostrar diffs de contenido (`Binary files differ`) |
-| Revertir a cualquier versión anterior | Fusionar cambios automáticamente |
+| Revertir a cualquier versión | Fusionar cambios automáticamente |
 | Crear ramas independientes | Resolver conflictos de merge |
 
-### Reglas para evitar conflictos
+### Reglas
 
 1. **Una persona por archivo a la vez.** En especial `Analizador_PCB.PcbDoc` — es monolítico.
-2. **Una rama por tarea**, nunca edites `main` directamente:
+2. **Una rama por tarea**, nunca edites `main`:
    ```bash
-   git checkout -b feature/ct-input-stage
+   git checkout -b feature/etapa-ct
    ```
-3. **Cierra Altium antes de `git pull` / `git checkout`.** Altium mantiene los archivos abiertos y puede sobrescribirlos al hacer el pull.
-4. **Commits pequeños y frecuentes.** Es más fácil revertir 3 commits que 1 commit con 200 cambios.
-5. **Si hay conflicto de merge**, no intentes resolverlo a mano sobre el binario. Usa:
+3. **Cierra Altium antes de `git pull` / `git checkout`.**
+4. **Commits pequeños y frecuentes.**
+5. **Si hay conflicto de merge**, no edites el binario a mano:
    ```bash
    git merge -X ours rama-del-companero
    ```
-   y luego aplica los cambios pendientes en Altium manualmente.
+   y aplica los cambios pendientes manualmente en Altium.
 
 ### Flujo recomendado
 
 ```bash
-git pull --rebase origin main      # sincronizar antes de trabajar
+git pull --rebase origin main
 git checkout -b feature/mi-tarea
 # ... trabajar en Altium ...
 git add hardware/altium/
-git commit -m "MEASURES: agrega divisor de tension VA"
+git commit -m "MEASURES: ajusta rango de ADC de corriente"
 git push -u origin feature/mi-tarea
 # → Pull Request en GitHub → revisión → merge a main
 ```
 
 ---
 
-## 📄 Convenciones de commits
+## 📄 Convención de commits
 
 ```
 <hoja o bloque>: <descripcion corta en imperativo>
 
-THREE PHASES: agrega MOV clase 510 VAC
-MEASURES: cambia divisor a 1M/1M
-POWER: sustituye LDO por TLV757P
-PCB: enrutado de zona de potencia
+THREE PHASES: agrega varistor por fase
+MEASURES: ajusta rango adaptativo de ADC de corriente
+POWER: dimensiona red de supercapacitores
+MCU: conecta SPI de la microSD
+PCB: enruta zona de potencia
 ```
 
 ---
 
 ## 📊 Estado del proyecto
 
-- [x] Arquitectura eléctrica especificada y normalizada (v2.0)
-- [x] Esquemáticos de las 5 hojas
-- [x] Layout de PCB
+**Hecho**
+- [x] Diagrama de bloques V2 definido
+- [x] Arquitectura de alimentación y respaldo (*Last Gasp*) definida
+- [x] Esquemáticos de las 5 hojas capturados
 - [x] Bibliotecas de componentes
-- [x] Documentación técnica y referencias
-- [ ] **MCU definitivo** — pendiente de decisión (la arquitectura deja el bloque abierto a propósito)
-- [ ] Modelo exacto de CT / Rogowski — familia seleccionada, modelo por definir
-- [ ] Red exacta del divisor de tensión de precisión — familia seleccionada
-- [ ] Validaciones obligatorias antes de congelar la PCB (ver §21 de la especificación)
-- [ ] Normativa aplicable (ver §22 de la especificación)
+- [x] Documentación y referencias recopiladas
+
+**Pendiente**
+- [ ] **Módulo Quectel FGH100M** — *no está en `MCU.SchDoc` todavía*
+- [ ] Ruteo del layout de la PCB
+- [ ] Actualizar `Especificacion de Arquitectura.md` a los componentes del V2
+- [ ] Modelo exacto de CT / Rogowski (familia seleccionada, modelo por definir)
+- [ ] Red exacta del divisor de tensión de precisión
+- [ ] Verificar que el segundo AC/DC sea realmente 3.3 V @ 1 A (el esquemático tiene `HLK-5M03B`)
+- [ ] Validaciones antes de congelar la PCB
+- [ ] Revisión normativa aplicable
 
 ---
 
@@ -217,6 +403,6 @@ Uso académico. Verificar autorización institucional antes de cualquier distrib
 
 ## 🔗 Enlaces útiles
 
-- [Documentación oficial de Altium — Git Version Control](https://www.altium.com/documentation/altium-designer/using-external-version-control/git)
+- [Altium — Git Version Control](https://www.altium.com/documentation/altium-designer/using-external-version-control/git)
+- [Altium — Using External Version Control](https://www.altium.com/documentation/altium-designer/using-external-version-control)
 - [KiCad — importación de archivos Altium](https://dev-docs.kicad.org/en/import-formats/altium/index.html)
-- [Altium Designer — diferencias entre SVN y Git](https://www.altium.com/documentation/altium-designer/using-external-version-control)
