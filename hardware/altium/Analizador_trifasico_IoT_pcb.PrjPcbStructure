@@ -1,0 +1,5 @@
+Record=TopLevelDocument|FileName=MAIN.SchDoc|SheetNumber=1
+Record=SheetSymbol|SourceDocument=MAIN.SchDoc|Designator=Designator|SchDesignator=Designator|FileName=MEASURES.SchDoc|SheetNumber=4|SymbolType=Normal|RawFileName=MEASURES.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
+Record=SheetSymbol|SourceDocument=MAIN.SchDoc|Designator=Designator|SchDesignator=Designator|FileName=POWER.SchDoc|SheetNumber=3|SymbolType=Normal|RawFileName=POWER.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
+Record=SheetSymbol|SourceDocument=MAIN.SchDoc|Designator=Designator|SchDesignator=Designator|FileName=THREE PHASES.SchDoc|SheetNumber=2|SymbolType=Normal|RawFileName=THREE PHASES.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
+Record=SheetSymbol|SourceDocument=MAIN.SchDoc|Designator=Designator|SchDesignator=Designator|FileName=MCU.SchDoc|SheetNumber=5|SymbolType=Normal|RawFileName=MCU.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 

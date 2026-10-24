@@ -1,0 +1,34 @@
+# ============================================================
+# Analizador Trifasico IoT - Atributos de Git
+# ============================================================
+
+# --- Archivos de texto de Altium: pueden verse diffs ---
+*.PrjPcb        text
+*.PrjPcbStructure text
+*.OutJob        text
+*.LibPkg        text
+*.BomDoc        text
+*.PrjPcbStructure text
+
+# --- Archivos binarios de Altium (OLE2 / CFB): Git no puede diffearlos ---
+*.SchDoc        binary
+*.PcbDoc        binary
+*.SchLib        binary
+*.PcbLib        binary
+*.IntLib        binary
+
+# --- Documentacion: binarios, evitar diffs ruidosos ---
+*.pdf           binary
+*.zip           binary
+*.STEP          binary
+*.step          binary
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+
+# --- Normalizacion de fin de linea ---
+*.md            text eol=lf
+*.txt           text eol=lf
+*.csv           text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf

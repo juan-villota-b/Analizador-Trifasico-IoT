@@ -1,0 +1,48 @@
+# ============================================================
+# Analizador Trifasico IoT - Archivos que NO deben versionarse
+# ============================================================
+
+# --- Altium Designer: historial local automatico ---
+History/
+__Previews/
+Project Logs for*/
+
+# --- Altium Designer: outputs generados ---
+Project Outputs for*/
+*.Cache
+*.bak
+*.~bak
+*.Backup
+*.Preview
+*.SchDocPreview
+*.PcbDocPreview
+*.lck
+*.tmp
+*.LOG
+
+# --- KiCad ---
+*.kicad_prl
+*.kicad_sch-bak
+*-backups/
+fp-lib-table
+sym-lib-table
+*.lck
+
+# --- Herramientas / editors ---
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Excepciones: SI versionar artefactos de fabricacion ---
+!hardware/altium/*.PcbDoc
+!hardware/altium/*.SchDoc
+!hardware/libraries/*.PcbLib
+!hardware/libraries/*.SchLib
+!hardware/libraries/*.IntLib
+
+# NOTA: los PDFs de datasheets y disenos de referencia SI se versionan
+# (son la documentacion tecnica del proyecto).
