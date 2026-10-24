@@ -291,22 +291,154 @@ Otras reglas:
 
 ---
 
-## 7. Ramas y Pull Requests (recomendado)
+## 7. Ramas y Pull Requests
+
+### ¿Para qué sirven si los binarios no se pueden fusionar?
+
+Las ramas **no** permiten fusionar archivos de Altium. Sirven para otra cosa:
+
+| Beneficio | Explicación |
+|---|---|
+| **`main` siempre abre y compila** | Si trabajas a medias en `main`, tu compañero recibe un proyecto roto |
+| **Descartar experimentos** | Si un enfoque falla, borras la rama y `main` nunca se enteró |
+| **Revisión antes de integrar** | El PR muestra qué archivos cambian → se detecta si falta la `.IntLib` |
+| **Revertir de golpe** | `git revert -m 1 <merge>` deshace una funcionalidad completa |
+
+### El ciclo completo
 
 ```bash
+# 1. Actualizar main (Altium cerrado)
+git checkout main
 git pull
+
+# 2. Crear la rama
 git checkout -b feature/etapa-ct
 
-# ... trabajar en Altium ...
+# 3. Trabajar en Altium... guardar... CERRAR
 
+# 4. Verificar y subir
+git status
 git add .
 git commit -m "MEASURES: agrega etapa de entrada para CT"
 git push -u origin feature/etapa-ct
 ```
 
-Luego en GitHub → **Compare & pull request** → el otro revisa → **Merge**.
+**5.** En GitHub aparece el banner **Compare & pull request** → clic → título → **Create pull request**
 
-Nadie toca `main` directamente. Así se evita el 95 % de los conflictos.
+**6.** El otro revisa en **Files changed**:
+```
+MEASURES.SchDoc                    modified
+Schlib1.SchLib                     modified
+Library_Analizador.IntLib          modified   ← si tocó librería, debe estar
+```
+
+**7.** **Merge pull request** → **Confirm merge**
+
+**8.** Limpiar:
+```bash
+git checkout main
+git pull
+git branch -d feature/etapa-ct
+git push origin --delete feature/etapa-ct
+```
+
+**9.** El otro se actualiza:
+```bash
+git checkout main
+git pull
+```
+
+### Antes de pedir el merge, si `main` avanzó
+
+```bash
+git checkout main
+git pull
+git checkout feature/mi-rama
+git merge main          # integra lo nuevo de main en tu rama
+git push
+```
+
+> Usa `git merge main`. No uses `rebase`: obliga a `push --force`, que es riesgoso.
+
+### Reglas
+
+| Regla | Motivo |
+|---|---|
+| **Una rama = una tarea** | Si mezclas dos, no puedes revertir una sola |
+| **Nunca dos personas en la misma rama** | Se pisan los commits |
+| **Nunca el mismo archivo en dos ramas** | Al mergear, uno pierde su cambio |
+| **Mergear de a uno** | Dos PRs simultáneos = conflictos asegurados |
+
+**Excepción:** los archivos de **texto** (`.md`, `.PrjPcb`) sí se pueden editar en paralelo — Git los fusiona solo.
+
+### Nombres de rama
+
+```bash
+feature/etapa-ct        # funcionalidad nueva
+fix/divisor-va          # corrección
+lib/simbolo-ct-100a     # librerías
+docs/actualiza-readme   # documentación
+```
+
+Sin tildes, sin espacios, en minúsculas.
+
+### Si hay conflicto al mergear
+
+GitHub dirá *"This branch has conflicts that must be resolved"*. Con binarios no se resuelve en la web:
+
+```bash
+git checkout main && git pull
+git checkout feature/mi-rama
+git merge main
+
+# elegir un lado:
+git checkout --ours   hardware/altium/MEASURES.SchDoc   # mi versión
+git checkout --theirs hardware/altium/MEASURES.SchDoc   # la de main
+
+git add .
+git commit
+git push
+```
+
+Quien perdió su cambio lo **vuelve a aplicar a mano en Altium**.
+
+### Errores comunes
+
+| Situación | Solución |
+|---|---|
+| Trabajé en `main` sin querer (sin push) | `git checkout -b feature/mi-tarea` → `git checkout main` → `git reset --hard origin/main` |
+| No aparece el botón de PR | **Pull requests** → **New pull request** → `base: main`, `compare: tu-rama` |
+| Me equivoqué de nombre | `git branch -m nombre-correcto` |
+| Quiero ver en qué rama estoy | `git branch` |
+
+### Resumen imprimible
+
+```
+EMPEZAR
+  git checkout main
+  git pull
+  git checkout -b feature/mi-tarea
+
+TERMINAR (Altium cerrado)
+  git status
+  git add .
+  git commit -m "BLOQUE: que hice"
+  git push -u origin feature/mi-tarea
+
+EN GITHUB
+  Compare & pull request -> Create -> Merge
+
+LIMPIAR
+  git checkout main && git pull
+  git branch -d feature/mi-tarea
+  git push origin --delete feature/mi-tarea
+
+SI main AVANZO ANTES DEL MERGE
+  git checkout main && git pull
+  git checkout feature/mi-tarea
+  git merge main
+  git push
+```
 
 ---
 
