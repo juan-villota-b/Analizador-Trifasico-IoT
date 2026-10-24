@@ -11,56 +11,9 @@
 
 Este es el diseño vigente. Toda decisión de hardware debe ser consistente con este diagrama.
 
-```mermaid
-flowchart TB
-    RED["Red trifasica<br/>L1 / L2 / L3 / N"]
+![Diagrama de bloques V2](documentation/diagrama-de-bloques-v2.png)
 
-    AC5["Hi-Link HLK-10M05<br/>5 V @ 2 A"]
-    AC3["Hi-Link<br/>3.3 V @ 1 A"]
-    SC["2x Supercapacitor<br/>HP-2R7-J306VYJ23<br/>5 V - 15 F / 3.2 W - 9 s"]
-    BUCK["Buck AP63203WU-7<br/>3.3 V @ 2 A"]
-
-    COND["Acondicionamiento<br/>Analogico"]
-    RN["RN8302B<br/>3 ADC tension ~800 mVpp<br/>4 ADC corriente ~150 mVpp"]
-    ISO["Aislamiento<br/>galvanico"]
-
-    MCU["ESP32-S3-WROOM"]
-
-    RS485["VISOM RSM3485PCT<br/>RS-485"]
-    HALOW["Quectel FGH100M<br/>Wi-Fi HaLow"]
-    SD["microSD"]
-    PROG["Programacion /<br/>monitoreo"]
-
-    RED --> AC5
-    RED --> AC3
-    RED --> COND
-    RED -->|"4 CT"| RN
-    COND -->|3 ADC tension| RN
-    RN --> ISO
-    ISO -->|"SPI 4 hilos + 2 GPIO"| MCU
-
-    AC5 --> SC
-    SC --> BUCK
-
-    BUCK -->|"500 mA"| MCU
-    BUCK -->|"10 mA"| RN
-    BUCK -->|"90 mA"| RS485
-    BUCK -->|"350 mA"| HALOW
-    BUCK -->|"200 mA"| SD
-
-    MCU -->|"UART TX/RX + 1 GPIO"| RS485
-    MCU -->|"6xSDIO / 4xSPI / 2xUART / 2xGPIO"| HALOW
-    MCU -->|"SPI 4 hilos"| SD
-    MCU -->|"USB D+/- -> JTAG"| PROG
-
-    style RED fill:#f9c6c6
-    style RN fill:#fdf0a8
-    style MCU fill:#d8d4f5
-    style COND fill:#c9e6b8
-    style SC fill:#c9dcf0
-    style SD fill:#c9dcf0
-    style PROG fill:#fdf0a8
-```
+> 📎 El mismo diagrama también está en PDF: [`Diagrama de bloquesv2.pdf`](documentation/Diagrama%20de%20bloquesv2.pdf)
 
 ---
 
@@ -218,7 +171,8 @@ Analizador trifasico IoT/
 │       └── Library_Analizador.IntLib   ← biblioteca integrada compilada
 │
 ├── documentation/
-│   ├── Diagrama de bloquesv2.pdf           ← ⭐ DIAGRAMA VIGENTE
+│   ├── diagrama-de-bloques-v2.png          ← ⭐ DIAGRAMA VIGENTE (imagen)
+│   ├── Diagrama de bloquesv2.pdf           ← el mismo diagrama en PDF
 │   ├── diagrama de bloques.pdf             ← versión 1 (histórico)
 │   └── Especificacion de Arquitectura.md   ← especificación v2.0 (ver nota)
 │
