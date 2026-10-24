@@ -150,6 +150,7 @@ El **supercapacitor** sostiene la alimentación **3.2 W durante 9 s** tras un co
 ```
 Analizador trifasico IoT/
 ├── README.md
+├── CONTRIBUTING.md                ← guía de trabajo en equipo (leer antes de commitear)
 ├── .gitignore
 ├── .gitattributes
 │
@@ -250,6 +251,20 @@ Analizador trifasico IoT/
 ---
 
 ## 🚀 Cómo empezar a colaborar
+
+> 📘 **Guía completa paso a paso: [`CONTRIBUTING.md`](CONTRIBUTING.md)**
+> Incluye configuración de SSH, instalación de librerías, cómo subir cambios de esquemáticos y de librerías, resolución de conflictos y errores frecuentes.
+
+### Resumen en 4 comandos
+
+```bash
+git pull
+git add .
+git commit -m "bloque: descripcion del cambio"
+git push
+```
+
+> ⚠️ **Cierra Altium antes de `git pull`.** Si está abierto, sobrescribe el archivo al guardar y se pierde el trabajo del compañero.
 
 ### 1. Clonar
 
