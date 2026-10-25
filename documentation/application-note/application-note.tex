@@ -1,0 +1,1309 @@
+% ============================================================================
+%  Analizador Trifásico IoT — Nota de aplicación
+%  Documento: AN-ATI-001 · Rev. 0.1 · Octubre de 2026
+%
+%  Compilar desde esta carpeta:
+%      pdflatex application-note.tex
+%      pdflatex application-note.tex
+%
+%  Requiere una distribución LaTeX con TikZ, booktabs, newtx y longtable.
+%  Probado con MiKTeX 25.12 (pdflatex).
+% ============================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-nodecimaldot,es-noshorthands]{babel}
+\addto\captionsspanish{\renewcommand{\tablename}{Tabla}}
+\usepackage{newtxtext,newtxmath}
+% La fuente de ancho fijo de newtx no está disponible en todas las
+% instalaciones de MiKTeX; se usa Latin Modern Typewriter para \texttt.
+\renewcommand{\ttdefault}{lmtt}
+\usepackage[a4paper,top=2.6cm,bottom=2.5cm,left=2.3cm,right=2.3cm,headheight=14pt]{geometry}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,longtable,array,multirow,makecell}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{needspace}
+\usepackage{amsmath}
+\usepackage{tikz}
+% Signo de porcentaje robusto: evita el macro \% de babel-español,
+% que falla dentro de tabularx/longtable ("Incompatible glue units").
+\newcommand{\pct}{\text{\char37}}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{ragged2e}
+\usepackage{setspace}
+
+% ----------------------------------------------------------------------------
+%  Identidad visual
+% ----------------------------------------------------------------------------
+\definecolor{unalblue}{HTML}{1F4E79}
+\definecolor{unalgray}{HTML}{595959}
+\definecolor{unalrule}{HTML}{2E75B6}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=unalblue,
+  citecolor=unalblue,
+  urlcolor=unalrule,
+  pdftitle={Analizador Trifásico IoT — Nota de aplicación},
+  pdfauthor={Equipo del proyecto Analizador Trifásico IoT},
+  pdfsubject={Arquitectura de hardware, protección de entrada y cadena de medida},
+  pdfkeywords={medición trifásica, RN8302B, ESP32-S3, ISO7741, Wi-Fi HaLow, RS-485, supercapacitor, medición de energía}
+}
+
+% ----------------------------------------------------------------------------
+%  Estilo de secciones y página
+% ----------------------------------------------------------------------------
+\titleformat{\section}
+  {\sffamily\Large\bfseries\color{unalblue}}
+  {\thesection}{0.8em}{}
+\titleformat{\subsection}
+  {\sffamily\large\bfseries\color{unalblue!90!black}}
+  {\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\sffamily\normalsize\bfseries}
+  {\thesubsubsection}{0.5em}{}
+% Las secciones sin número (Resumen, Referencias) conservan la identidad visual
+\titleformat{name=\section,numberless}
+  {\sffamily\Large\bfseries\color{unalblue}}
+  {}{0em}{}
+\titlespacing*{\section}{0pt}{2.4ex plus .4ex minus .2ex}{1.0ex}
+\titlespacing*{\subsection}{0pt}{1.8ex plus .3ex minus .2ex}{0.7ex}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\footnotesize\color{unalgray}AN-ATI-001 · Analizador Trifásico IoT}
+\fancyhead[R]{\sffamily\footnotesize\color{unalgray}Rev. 0.1 · Octubre de 2026}
+\fancyfoot[C]{\sffamily\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\captionsetup{
+  font=small,
+  labelfont={bf,color=unalblue},
+  justification=centering,
+  skip=6pt
+}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\renewcommand{\arraystretch}{1.12}
+\setlist{nosep,leftmargin=1.4em}
+
+% ----------------------------------------------------------------------------
+%  Portada
+% ----------------------------------------------------------------------------
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{flushleft}
+{\sffamily\small\color{unalgray}UNIVERSIDAD NACIONAL DE COLOMBIA}\\[2pt]
+{\sffamily\small\color{unalgray}FACULTAD DE INGENIERÍA}\\[2pt]
+{\sffamily\small\color{unalgray}PROYECTO ANALIZADOR TRIFÁSICO IoT}
+\end{flushleft}
+
+\vspace{1.1cm}
+{\color{unalblue}\rule{\textwidth}{2.5pt}}
+\vspace{0.9cm}
+
+{\sffamily\Huge\bfseries\color{unalblue} Analizador Trifásico IoT\par}
+\vspace{0.55cm}
+{\sffamily\LARGE Arquitectura de hardware,\\ protección de entrada y cadena de medida\par}
+\vspace{0.9cm}
+{\sffamily\large\bfseries Nota de aplicación\par}
+{\sffamily\large AN-ATI-001 · Rev. 0.1\par}
+\vspace{0.35cm}
+{\color{unalblue}\rule{\textwidth}{0.8pt}}
+
+\vfill
+
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{4.3cm}X@{}}
+Documento & Nota de aplicación técnica \\
+Versión & 0.1 (borrador) \\
+Fecha & Octubre de 2026 \\
+Autor & Equipo del proyecto Analizador Trifásico IoT \\
+Institución & Universidad Nacional de Colombia \\
+Referencia & Arquitectura V2 del proyecto (07/10/2026) \\
+Alcance & Hardware; no incluye firmware ni ensayos \\
+\end{tabularx}
+
+\vspace{0.9cm}
+{\footnotesize\color{unalgray}
+Documento de trabajo académico. Describe la arquitectura de hardware y las
+decisiones de diseño del instrumento. Los puntos que aún no están definidos se
+reúnen en la Sección~\ref{sec:desarrollo}.}
+\end{titlepage}
+
+% ----------------------------------------------------------------------------
+%  Resumen
+% ----------------------------------------------------------------------------
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\section*{Resumen}
+\addcontentsline{toc}{section}{Resumen}
+
+Este documento presenta la arquitectura de hardware del \textbf{Analizador
+Trifásico IoT}, un instrumento académico para la medición de variables
+eléctricas en redes trifásicas de baja tensión. La nota se organiza alrededor
+de la \textbf{arquitectura V2 del proyecto (07/10/2026)}, adoptada como diseño
+vigente.
+
+Se describen la entrada trifásica y su protección, el acondicionamiento
+analógico, el AFE metrológico RN8302B, el aislamiento digital con ISO7741, el
+módulo ESP32-S3-WROOM-1-N4, la arquitectura de alimentación con respaldo de
+supercapacitores y las interfaces RS-485, Wi-Fi HaLow, microSD y USB-C. Se
+identifican además los puntos técnicos que deben resolverse antes de fabricar
+la PCB; se reúnen en una sola sección para no interrumpir la descripción del
+diseño.
+
+\vspace{0.4em}
+\noindent\textbf{Palabras clave:} medición trifásica; RN8302B; ESP32-S3;
+ISO7741; Wi-Fi HaLow; RS-485; supercapacitor; medición de energía.
+
+\vspace{0.6em}
+\noindent\textbf{Alcance.} Esta nota documenta hardware. No especifica
+firmware, calibración metrológica, ensayos de conformidad ni el procedimiento
+de instalación; esos temas se mencionan solo cuando condicionan una decisión de
+hardware.
+
+% ----------------------------------------------------------------------------
+%  Índices
+% ----------------------------------------------------------------------------
+\newpage
+\tableofcontents
+\newpage
+\listoffigures
+\vspace{0.5em}
+\listoftables
+
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% ----------------------------------------------------------------------------
+%  Contenido
+% ----------------------------------------------------------------------------
+\section{Introducción}
+
+\subsection{Propósito y alcance}
+
+El propósito de esta nota es documentar, con nivel de detalle de diseño, cómo
+está construido el hardware del Analizador Trifásico IoT y por qué. El
+documento se dirige a las personas que revisarán, replicarán o continuarán el
+diseño; por eso cada afirmación sobre componentes se apoya en los datasheets
+del fabricante y en la arquitectura de referencia del proyecto.
+
+La nota se limita a los bloques que definen la arquitectura vigente. No es un
+manual de usuario, no describe firmware y no presenta resultados de ensayos.
+Los criterios de selección, las interfaces y las decisiones de protección se
+explican en el cuerpo del documento; los puntos que aún no están definidos se
+reúnen en la Sección~\ref{sec:desarrollo} para no interrumpir la descripción
+del diseño.
+
+\subsection{Organización del documento}
+
+La nota sigue el recorrido de la señal y de la energía por el instrumento:
+
+\begin{itemize}
+  \item La Sección~\ref{sec:sistema} presenta la arquitectura general, el
+        principio de operación y los requisitos de producto que condicionan el
+        hardware.
+  \item La Sección~\ref{sec:entrada} describe la entrada trifásica, los
+        fusibles, los varistores y la distribución de las fases.
+  \item La Sección~\ref{sec:medicion} detalla los divisores de tensión, las
+        entradas de corriente y el AFE metrológico RN8302B.
+  \item La Sección~\ref{sec:aislamiento} explica la barrera galvánica y el
+        enlace SPI aislado.
+  \item La Sección~\ref{sec:procesamiento} cubre el ESP32-S3 y las interfaces
+        RS-485, Wi-Fi HaLow, microSD y USB-C.
+  \item La Sección~\ref{sec:alimentacion} describe los rieles, el respaldo de
+        supercapacitores y el presupuesto de corriente.
+  \item La Sección~\ref{sec:desarrollo} reúne los aspectos que deben
+        completarse antes de fabricar la PCB.
+\end{itemize}
+
+\subsection{Convenciones y nomenclatura}
+
+\textbf{Alcance de la revisión.} Revisión 0.1, borrador técnico. Describe la
+arquitectura de hardware y las decisiones tomadas; el prototipo no se ha
+fabricado. Los valores que dependen de una selección posterior se tratan en la
+Sección~\ref{sec:desarrollo}.
+
+\textbf{Convenciones.} Las tensiones son eficaces salvo que se indique otra
+cosa. Las corrientes son de continua o de pico según el contexto. ``3P4W''
+designa una red de tres fases y neutro; ``3P3W'', una red de tres fases sin
+neutro.
+
+\begin{table}[H]
+\centering
+\caption{Abreviaturas usadas en el documento.}
+\label{tab:abbr}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.0cm} X@{}}
+\toprule
+\textbf{Término} & \textbf{Significado} \\
+\midrule
+AFE & \emph{Analog front end}; cadena de acondicionamiento y conversión analógica. \\
+CT & Transformador de corriente (\emph{current transformer}). \\
+MOV & Varistor de óxido metálico (\emph{metal-oxide varistor}). \\
+SPI & \emph{Serial Peripheral Interface}. \\
+GPIO & \emph{General-purpose input/output}. \\
+UART & \emph{Universal asynchronous receiver-transmitter}. \\
+SDIO & \emph{Secure Digital Input/Output}. \\
+JTAG & \emph{Joint Test Action Group}; interfaz de programación y depuración. \\
+BOM & \emph{Bill of materials}; lista de materiales. \\
+Last Gasp & Operación de respaldo para cerrar el registro de forma ordenada tras un corte de red. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\Needspace{5\baselineskip}
+\section{Descripción del sistema}
+\label{sec:sistema}
+
+\subsection{Diagrama de bloques}
+
+La Figura~\ref{fig:bloques} presenta el diagrama de bloques del instrumento,
+con los bloques, las interfaces y los rangos de operación del diseño. Las
+líneas azules representan señales; las verdes, distribución de energía.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  block/.style={draw, rounded corners=2pt, align=center,
+    font=\sffamily\scriptsize, inner sep=3pt, minimum height=1.05cm},
+  input/.style={block, fill=red!8, draw=red!55!black,
+    text width=3.25cm, minimum width=3.45cm},
+  prot/.style={block, fill=orange!10, draw=orange!55!black,
+    text width=3.25cm, minimum width=3.45cm},
+  meas/.style={block, fill=yellow!18, draw=yellow!45!black,
+    text width=3.25cm, minimum width=3.45cm},
+  iso/.style={block, fill=purple!8, draw=purple!45!black,
+    text width=3.25cm, minimum width=3.45cm},
+  dig/.style={block, fill=blue!8, draw=blue!45!black,
+    text width=3.25cm, minimum width=3.45cm},
+  pwr/.style={block, fill=green!8, draw=green!45!black,
+    text width=2.45cm, minimum width=2.65cm},
+  per/.style={block, fill=cyan!8, draw=cyan!45!black,
+    text width=2.35cm, minimum width=2.55cm},
+  sig/.style={-{Latex[length=1.7mm]}, semithick, draw=blue!55!black,
+    rounded corners=8pt},
+  sigbus/.style={semithick, draw=blue!55!black, rounded corners=8pt},
+  pwra/.style={-{Latex[length=1.7mm]}, semithick, draw=green!45!black,
+    rounded corners=8pt},
+  pwrbus/.style={semithick, draw=green!45!black, rounded corners=8pt},
+  lab/.style={font=\sffamily\tiny, fill=white, inner sep=1.2pt},
+  stage/.style={font=\sffamily\tiny\bfseries, text=black!60}
+]
+
+% Encabezados funcionales
+\node[stage] at (1.5,1.35) {ALIMENTACIÓN};
+\node[stage] at (7.4,1.35) {MEDIDA, AISLAMIENTO Y CONTROL};
+
+% Columna izquierda: generación, respaldo y rieles
+\node[pwr] (ps1) at (0,0)
+  {PS1 · HLK-10M05\\5 V / 2 A};
+\node[pwr] (ps2) at (3.0,0)
+  {PS2 · HLK-5M03B\\AVCC\_3v3 / 1,5 A};
+\node[pwr] (backup) at (0,-2.0)
+  {Respaldo Last Gasp\\SY6280AAC\\2$\times$30 F en serie};
+\node[pwr] (buck) at (0,-4.0)
+  {U3 · AP63203WU-7\\DVCC\_3v3 / 2 A};
+
+% Columna central: flujo principal inspirado en el diagrama V2
+\node[input] (mains) at (7.4,0)
+  {Red trifásica\\L1 / L2 / L3 / N};
+\node[prot] (term) at (7.4,-1.55)
+  {Bornera U4 · 4 vías\\C50126V-4P0G56};
+\node[prot] (prot) at (7.4,-3.1)
+  {Protección de entrada\\F1--F3 (2 A) + RV1--RV3};
+\node[meas] (cond) at (7.4,-4.65)
+  {Acondicionamiento analógico\\divisores + filtros RC};
+\node[meas] (afe) at (7.4,-6.2)
+  {AFE RN8302B\\3 V + 4 I};
+\node[iso] (iso) at (7.4,-7.75)
+  {ISO7741 · 4 canales\\aislamiento SPI};
+\node[dig] (mcu) at (7.4,-9.3)
+  {\mbox{ESP32-S3-WROOM-1-N4}\\procesamiento y control};
+
+% Programación a la derecha y periféricos bajo el procesador
+\node[per] (usb) at (12.0,-9.3)
+  {USB-C · J401\\programación / monitoreo};
+\node[per] (rs485) at (4.0,-11.8)
+  {RS-485\\VISOM RSM3485PCT};
+\node[per] (halow) at (7.4,-11.8)
+  {Wi-Fi HaLow\\Quectel FGH100M};
+\node[per] (sd) at (10.8,-11.8)
+  {microSD\\tf-card-9p};
+
+% Flujo vertical de entrada, medida y control
+\draw[sig] (mains) -- (term);
+\draw[sig] (term) -- (prot);
+\draw[sig] (prot) -- node[lab,right=3pt] {Phase\_1/2/3/N} (cond);
+\draw[sig] (cond) -- (afe);
+\draw[sig] (afe) -- node[lab,right=3pt] {SPI} (iso);
+\draw[sig] (iso) -- node[lab,right=3pt] {SPI aislado} (mcu);
+\draw[sig] (mcu) -- node[lab,above=2pt] {USB / JTAG} (usb);
+
+% Derivación protegida hacia las dos fuentes, sin cruzar sus salidas
+\draw[sigbus] (prot.west) -- (4.85,-3.1) -- (4.85,0.82) -- (0,0.82);
+\node[lab] at (2.6,0.98) {Phase\_1 / N};
+\draw[sig] (0,0.82) -- (ps1.north);
+\draw[sig] (3.0,0.82) -- (ps2.north);
+
+% Rama de respaldo y fuente auxiliar de medida
+\draw[pwra] (ps1) -- (backup);
+\draw[pwra] (backup) -- (buck);
+\draw[pwra] (ps2.south) -- (3.0,-6.2)
+  node[lab,pos=0.72,right=3pt] {AVCC\_3v3} -- (afe.west);
+\node[lab] at (4.35,-6.02) {10 mA};
+
+% Distribución DVCC: bus lateral independiente de las señales
+\draw[pwrbus] (buck.west) -- (-1.65,-4.0) -- (-1.65,-13.25)
+  -- (10.8,-13.25);
+\draw[pwra] (-1.65,-9.3) -- node[lab,above=2pt]
+  {DVCC\_3v3 · 500 mA} (mcu.west);
+\draw[pwra] (4.0,-13.25) -- node[lab,pos=0.55,right=3pt]
+  {90 mA} (rs485.south);
+\draw[pwra] (7.4,-13.25) -- node[lab,pos=0.55,right=3pt]
+  {350 mA} (halow.south);
+\draw[pwra] (10.8,-13.25) -- node[lab,pos=0.55,right=3pt]
+  {200 mA} (sd.south);
+
+% Interfaces de los periféricos: ramas paralelas y equidistantes
+\draw[sigbus] (mcu.south) -- (7.4,-10.72) -- (4.0,-10.72);
+\draw[sigbus] (7.4,-10.72) -- (10.8,-10.72);
+\draw[sig] (4.0,-10.72) -- node[lab,pos=0.55,left=3pt]
+  {UART} (rs485.north);
+\draw[sig] (7.4,-10.72) -- node[lab,pos=0.55,left=3pt]
+  {SDIO / SPI} (halow.north);
+\draw[sig] (10.8,-10.72) -- node[lab,pos=0.55,left=3pt]
+  {SPI} (sd.north);
+
+\end{tikzpicture}
+\caption{Diagrama de bloques del Analizador Trifásico IoT. Las líneas azules
+representan señales y las verdes, distribución de energía.}
+\label{fig:bloques}
+\end{figure}
+
+\subsection{Principio de operación}
+
+La cadena de medida comienza en la bornera de entrada U4, donde se conectan
+L1, L2, L3 y N. Cada fase pasa por un fusible y un varistor antes de llegar a
+las etapas de potencia y de medida. En la etapa de medida, las tensiones se
+atenúan con divisores resistivos y las corrientes entran por cuatro conectores
+para transformadores de corriente. El RN8302B convierte y procesa las señales;
+el ISO7741 aísla el bus SPI que las lleva al ESP32-S3. El microcontrolador
+agrega la energía, sella la hora, escribe en la microSD y atiende las
+comunicaciones RS-485 y Wi-Fi HaLow.
+
+La alimentación se deriva de \texttt{Phase\_1} y \texttt{N}. La fuente PS1
+(HLK-10M05) entrega 5 V y carga dos supercapacitores de 30 F en serie; el buck
+U3 (AP63203WU-7) genera el riel digital de 3.3 V. La fuente PS2 (HLK-5M03B)
+genera el riel auxiliar de 3.3 V para el dominio de medida. El respaldo de
+supercapacitores permite el cierre ordenado del registro tras un corte de red
+(\emph{Last Gasp}).
+
+\subsection{Requisitos de referencia}
+
+La Tabla~\ref{tab:requisitos} resume los requisitos de producto que condicionan
+el hardware \cite{rdem01}. La última columna indica cómo los cubre el diseño
+actual o qué falta para cubrirlos. No se presentan como resultados de ensayo.
+
+\begin{table}[H]
+\centering
+\caption{Requisitos de producto relevantes para el hardware.}
+\label{tab:requisitos}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{1.0cm} >{\raggedright\arraybackslash}p{6.3cm} X@{}}
+\toprule
+\textbf{ID} & \textbf{Requisito} & \textbf{Cobertura en el diseño} \\
+\midrule
+F-01 & Medición de V, I, P, Q, S, PF y frecuencia, por fase y total, en 3P4W y 3P3W. & AFE RN8302B y firmware; el hardware cubre 3P4W. El conexionado 3P3W debe verificarse. \\
+F-03 & Error $\leq 2\,\pct$ en energía activa (clase 2), de 5\,\pct a 120\,\pct de $I_n$. & Objetivo de exactitud; requiere calibración. \\
+F-04 & 90--264 V por canal de tensión, 50/60 Hz, 1,2 $U_n$ permanente. & Parcial; verificar divisores, bornera y fusibles para 440 V entre fases. \\
+F-05 & 0,05--100 A por fase con TC de núcleo partido de 333 mV. & Parcial; modelo de TC por definir. \\
+F-06 & Alimentación auxiliar de 85--264 VCA, independiente de la red medida. & Parcial; PS1 y PS2 se alimentan de \texttt{Phase\_1}/\texttt{N}. \\
+F-07 & Modbus RTU esclavo por RS-485, 9,6--115,2 kbps; Wi-Fi HaLow con MQTT/TLS. & RS-485 implementado; integración de HaLow por completar. \\
+F-08 & Registro en microSD de al menos 90 días a 15 minutos, CSV con verificación de integridad. & microSD implementada; registro a cargo del firmware. \\
+F-09 & Al menos 5 s de operación tras un corte, con cierre ordenado. & Supercapacitores dimensionados; falta ensayo. \\
+NF-02 & Aislamiento de 2,5 kVCA entre medida y comunicación/USB. & ISO7741DWR de 5 kVrms; revisar separación de tierras (Sección~\ref{sec:aislamiento}). \\
+NF-03 & Inmunidad IEC 61000-4-2 nivel 3, 4-4 nivel 3, 4-5 nivel 4 y 4-6 nivel 3; emisión EN 55011 clase B. & Requiere ensayo y layout definitivo. \\
+NF-10 & Categoría de medida III, 300 V; IEC 61010-1. & Requiere revisión normativa. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\section{Entrada trifásica y protección}
+\label{sec:entrada}
+
+\subsection{Topología y conexionado}
+
+La entrada se realiza por \textbf{U4}, una bornera de cuatro vías de 5 mm
+(JXTCONN C50126V-4P0G56) \cite{jxtconn}. Las cuatro vías corresponden a L1, L2,
+L3 y N. Cada fase pasa por un fusible de 2 A (F1--F3, JDT Fuse
+JFC2410-0200TS, formato 2410, \emph{time-lag}) \cite{jfcfuse}. El neutro llega
+directo a la red \texttt{N}. Después de los fusibles, cada fase tiene un varistor
+MOV-14D471K (RV1--RV3) conectado a la referencia de protección \texttt{GND}.
+Las fases protegidas salen como \texttt{Phase\_1}, \texttt{Phase\_2},
+\texttt{Phase\_3} y \texttt{N} hacia las etapas de potencia y de medida. La
+Figura~\ref{fig:entrada} dibuja la etapa como esquema eléctrico: los fusibles y
+los varistores aparecen como componentes, no como bloques, y las uniones se
+trazan como cables; el arco sobre un cruce indica que los conductores no se
+conectan.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  block/.style={draw,rounded corners=2pt,align=center,font=\sffamily\scriptsize,inner sep=3pt,minimum height=0.9cm},
+  port/.style={block,fill=blue!8,draw=blue!55!black,minimum width=2.0cm},
+  wire/.style={semithick,draw=blue!55!black},
+  lab/.style={font=\sffamily\scriptsize},
+  desig/.style={font=\sffamily\scriptsize,inner sep=1pt}
+]
+% U4: bornera de entrada
+\node[block,fill=gray!8,draw=gray!55!black,minimum width=2.2cm,minimum height=4.3cm]
+  (u4) at (0,0) {U4\\Bornera\\4 vías};
+\node[lab,anchor=east] at (-1.15,1.6) {L1};
+\node[lab,anchor=east] at (-1.15,0.4) {L2};
+\node[lab,anchor=east] at (-1.15,-0.8) {L3};
+\node[lab,anchor=east] at (-1.15,-2.0) {N};
+
+% Puertos jerárquicos de salida
+\node[port] (p1) at (7.6,1.6) {Phase\_1};
+\node[port] (p2) at (7.6,0.4) {Phase\_2};
+\node[port] (p3) at (7.6,-0.8) {Phase\_3};
+\node[port] (pn) at (7.6,-2.0) {N};
+
+% Cables de fase y de neutro
+\draw[wire] (1.1,1.6) -- (6.6,1.6);
+\draw[wire] (1.1,0.4) -- (6.6,0.4);
+\draw[wire] (1.1,-0.8) -- (6.6,-0.8);
+\draw[wire] (1.1,-2.0) -- (6.6,-2.0);
+
+% Fusibles F1--F3 (símbolo IEC: rectángulo atravesado por el conductor)
+\foreach \y/\f in {1.6/F1, 0.4/F2, -0.8/F3}{
+  \draw[wire] (2.58,\y+0.11) rectangle (3.12,\y-0.11);
+  \node[desig,anchor=south] at (2.85,\y+0.15) {\f};
+  \node[desig,anchor=north] at (2.85,\y-0.15) {2\,A};
+}
+
+% Nodos de derivación hacia los varistores
+\fill[blue!55!black] (4.2,1.6) circle (0.035);
+\fill[blue!55!black] (5.1,0.4) circle (0.035);
+\fill[blue!55!black] (6.0,-0.8) circle (0.035);
+
+% Varistores RV1--RV3: cada fase deriva a GND.
+% El arco en un cruce indica conductores que se cruzan sin conexión.
+\draw[wire] (4.2,1.6) -- (4.2,0.48) arc (90:-90:0.08)
+  -- (4.2,-0.72) arc (90:-90:0.08) -- (4.2,-1.92) arc (90:-90:0.08)
+  -- (4.2,-2.85);
+\draw[wire] (5.1,0.4) -- (5.1,-0.72) arc (90:-90:0.08)
+  -- (5.1,-1.92) arc (90:-90:0.08) -- (5.1,-2.85);
+\draw[wire] (6.0,-0.8) -- (6.0,-1.92) arc (90:-90:0.08) -- (6.0,-2.85);
+
+\foreach \x/\r in {4.2/RV1, 5.1/RV2, 6.0/RV3}{
+  \draw[wire] (\x-0.11,-3.35) rectangle (\x+0.11,-2.85);
+  \draw[wire] (\x-0.15,-3.39) -- (\x+0.15,-2.81);
+  \draw[wire] (\x,-3.35) -- (\x,-3.60);
+  \node[desig,anchor=south west] at (\x+0.14,-2.79) {\r};
+}
+
+% Riel de referencia de protección
+\draw[thick] (4.2,-3.60) -- (6.6,-3.60);
+\draw[thick] (6.6,-3.60) -- (6.6,-3.73);
+\draw[thick] (6.38,-3.73) -- (6.82,-3.73);
+\draw[thick] (6.46,-3.83) -- (6.74,-3.83);
+\draw[thick] (6.53,-3.93) -- (6.67,-3.93);
+\node[lab,anchor=north] at (6.6,-4.01) {GND (referencia de protección)};
+
+\end{tikzpicture}
+\caption{Cadena de entrada y protección, dibujada como esquema eléctrico. Cada
+fase pasa por su fusible F1--F3 (2\,A) y su varistor RV1--RV3 deriva a la
+referencia \texttt{GND}; el neutro llega directo a la etapa de medida. El arco
+sobre un cruce indica que los conductores no se conectan.}
+\label{fig:entrada}
+\end{figure}
+
+\subsection{Componentes de entrada}
+
+\begin{table}[H]
+\centering
+\caption{Componentes de la etapa de entrada y protección.}
+\label{tab:entrada}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{1.5cm} >{\raggedright\arraybackslash}p{3.2cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{4.3cm}@{}}
+\toprule
+\textbf{Desig.} & \textbf{Componente} & \textbf{Valor / referencia} & \textbf{Función y destino} \\
+\midrule
+U4 & Bornera de 4 vías, 5 mm & C50126V-4P0G56, 18 A, 250 V & Entrada L1/L2/L3/N; alimenta F1--F3 y \texttt{N}. \\
+F1--F3 & Fusible 2410, \emph{time-lag} & JFC2410-0200TS, 2 A & Protección de cada fase; salida \texttt{Phase\_1/2/3}. \\
+RV1--RV3 & Varistor de óxido metálico, 14 mm & MOV-14D471K, 470 V & Supresión de transitorios fase--\texttt{GND}. \\
+U101--U104 & Conector de 3 pines & HX PJ-320A-3P DIP & Entrada de los cuatro canales de corriente. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Distribución de las fases}
+
+Las tres fases protegidas y el neutro se distribuyen con los nombres
+\texttt{Phase\_1}, \texttt{Phase\_2}, \texttt{Phase\_3} y \texttt{N}. La etapa
+de medida recibe las cuatro señales; la etapa de potencia toma únicamente
+\texttt{Phase\_1} y \texttt{N}. En consecuencia:
+
+\begin{itemize}
+  \item La medición de tensión recibe las tres fases y el neutro.
+  \item La alimentación se toma de una sola fase (\texttt{Phase\_1}) y del
+        neutro, a través de las ferritas FB1 y FB2.
+  \item El neutro no lleva fusible; esta decisión debe revisarse junto con la
+        coordinación de protecciones.
+\end{itemize}
+
+\subsection{Observaciones de protección}
+
+\begin{itemize}
+  \item \textbf{Tensión de la bornera.} La ficha del proveedor de U4 indica
+        250 V. El requisito de producto contempla 440 V entre fases en 3P3W;
+        la tensión nominal de la bornera queda por debajo. Debe verificarse y,
+        si aplica, seleccionar una bornera de mayor tensión.
+  \item \textbf{Tensión de los fusibles.} Los fusibles 2410 se especifican
+        típicamente para 250 VCA. En 3P4W cada fusible ve la tensión
+        fase--neutro; en 3P3W ve la tensión entre fases. La coordinación debe
+        hacerse para el caso más exigente.
+  \item \textbf{Coordinación fusible--varistor--fuente.} El fabricante del
+        HLK-5M03 recomienda un fusible de 1 A/250 VCA para la fuente; el diseño
+        usa 2 A. La selección debe justificarse con la corriente de entrada, la
+        corriente de irrupción y la capacidad de la fuente.
+  \item \textbf{Referencia de protección.} RV1--RV3 van de fase a \texttt{GND}.
+        La unión de \texttt{GND} con la tierra de protección (PE) y el
+        comportamiento ante una falla de fase a tierra deben definirse antes de
+        fabricar.
+\end{itemize}
+\section{Acondicionamiento analógico y AFE}
+\label{sec:medicion}
+
+\subsection{Canales de tensión}
+
+El frontal de medida tiene tres canales diferenciales de tensión. La red de
+atenuación está formada por resistencias de precisión de
+$165\,\mathrm{k\Omega}$ (R1--R6, R9--R14 y R17--R22) y resistencias de
+$1\,\mathrm{k\Omega}$ (R7, R8, R15, R16, R23 y R24), con capacitores de
+$33\,\mathrm{nF}$ (C2, C10, C12, C13, C14 y C15) para el filtrado. Cada fase
+usa seis resistencias de $165\,\mathrm{k\Omega}$ y dos de $1\,\mathrm{k\Omega}$.
+
+El rango de entrada de los ADC de tensión se fija en \textbf{800 mVpp}. El
+divisor se dimensiona para que la tensión máxima de fase produzca ese rango en
+la entrada del AFE.
+
+\subsection{Canales de corriente}
+
+Hay cuatro canales diferenciales de corriente: tres fases y neutro. Cada canal
+entra por un conector de tres pines HX PJ-320A-3P DIP (U101--U104) y pasa por
+una red RC formada por resistencias de $1\,\mathrm{k\Omega}$ (R101--R108) y
+capacitores de $33\,\mathrm{nF}$ (C101--C108). El rango de entrada es de
+\textbf{50 mVpp a 400 mVpp} y el punto nominal de operación es de
+$\approx 150\,\mathrm{mVpp}$. El rango es adaptativo y el punto de operación
+depende del transformador de corriente seleccionado.
+
+El diseño prevé un TC de núcleo partido con salida de 333 mV y un rango de
+0,05 A a 100 A.
+
+\subsection{AFE metrológico RN8302B}
+
+El AFE es el \textbf{RENERGY RN8302B} (U2). Integra tres canales de tensión y
+cuatro de corriente, y calcula internamente tensión, corriente, potencia activa,
+reactiva y aparente, factor de potencia y distorsión armónica. El
+microcontrolador no realiza la metrología; lee los registros del RN8302B por
+SPI.
+
+El reloj de metrología es un cristal dedicado \textbf{X101}
+(\texttt{049ss2-8.192f12dzlal}) de \textbf{8,192 MHz}, con dos capacitores de
+carga de $15\,\mathrm{pF}$ (C1 y C11). El desacople del AFE comprende cuatro
+capacitores de $100\,\mathrm{nF}$, dos de $10\,\mathrm{\mu F}$ y uno de
+$1\,\mathrm{\mu F}$, que corresponden a C4, C6, C8 y C9; C5 y C7; y C3,
+respectivamente.
+
+\begin{table}[H]
+\centering
+\caption{Componentes principales de la cadena de medida.}
+\label{tab:medicion}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.6cm} >{\raggedright\arraybackslash}p{5.3cm} X@{}}
+\toprule
+\textbf{Sub-bloque} & \textbf{Componentes} & \textbf{Función} \\
+\midrule
+Divisores de tensión &
+R1--R6, R9--R14, R17--R22 ($165\,\mathrm{k\Omega}$);
+R7, R8, R15, R16, R23, R24 ($1\,\mathrm{k\Omega}$);
+C2, C10, C12--C15 ($33\,\mathrm{nF}$) &
+Atenuación y filtrado de las tres fases. \\
+Entradas de corriente &
+U101--U104 (HX PJ-320A-3P DIP);
+R101--R108 ($1\,\mathrm{k\Omega}$);
+C101--C108 ($33\,\mathrm{nF}$) &
+Conector y filtro RC de cada canal de corriente. \\
+AFE &
+U2 (RN8302B);
+X101 (8,192 MHz);
+C1, C11 ($15\,\mathrm{pF}$);
+C3--C9 (desacople) &
+Conversión, cálculo metrológico y reloj. \\
+Aislamiento &
+U1 (ISO7741DWR);
+R25, R26 ($10\,\mathrm{k\Omega}$) &
+Enlace SPI aislado; pull-ups de EN1/EN2. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Filtrado y disposición}
+
+Las redes RC de entrada atenúan el ruido de alta frecuencia antes del AFE. Los
+capacitores de desacople se ubican junto a los pines de alimentación del
+circuito integrado y las pistas diferenciales se trazan simétricas y cortas
+para conservar la simetría entre canales.
+\section{Aislamiento galvánico}
+\label{sec:aislamiento}
+
+\subsection{ISO7741 y señales aisladas}
+
+El aislamiento entre el dominio de medida y el dominio digital se realiza con
+\textbf{U1}, un ISO7741DWR de cuatro canales. El ISO7741 tiene tres canales en
+un sentido y uno en sentido inverso, lo que coincide con un bus SPI: SCLK, SCS
+y SDI van del microcontrolador al AFE, y SDIO regresa del AFE al
+microcontrolador.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  dombox/.style={draw, rounded corners=2pt, minimum width=3.55cm,
+    minimum height=5.2cm},
+  measdom/.style={dombox, fill=yellow!10, draw=yellow!45!black},
+  digdom/.style={dombox, fill=blue!6, draw=blue!45!black},
+  iso/.style={draw, rounded corners=2pt, fill=purple!8,
+    draw=purple!45!black, minimum width=4.9cm, minimum height=5.2cm},
+  sig/.style={-{Latex[length=1.8mm]}, semithick, draw=blue!55!black,
+    rounded corners=8pt},
+  chan/.style={font=\sffamily\scriptsize\bfseries, text=black!80},
+  pin/.style={font=\sffamily\tiny, text=black!65},
+  domtag/.style={font=\sffamily\tiny\bfseries, text=black!55}
+]
+
+% Dominios de referencia: cada uno ocupa un lado de la barrera
+\draw[measdom] (-7.1,-2.6) rectangle (-3.35,2.6);
+\draw[digdom]   (3.35,-2.6) rectangle (7.1,2.6);
+
+\node[domtag] at (-5.225,2.25) {DOMINIO DE MEDIDA};
+\node[font=\sffamily\large\bfseries] at (-5.225,1.15) {RN8302B};
+\node[font=\sffamily\scriptsize, text=black!65] at (-5.225,0.62) {AFE};
+\node[font=\sffamily\scriptsize] at (-5.225,-1.6) {AVCC\_3v3};
+\node[pin] at (-5.225,-2.05) {referencia GND1};
+
+\node[domtag] at (5.225,2.25) {DOMINIO DIGITAL};
+\node[font=\sffamily\large\bfseries] at (5.225,1.15) {ESP32-S3};
+\node[font=\sffamily\scriptsize, text=black!65] at (5.225,0.62) {procesamiento};
+\node[font=\sffamily\scriptsize] at (5.225,-1.6) {DVCC\_3v3};
+\node[pin] at (5.225,-2.05) {referencia GND2};
+
+% Aislador: cuatro canales alineados y barrera en el centro del componente
+\draw[iso] (-2.45,-2.6) rectangle (2.45,2.6);
+\node[font=\sffamily\small\bfseries] at (0,2.25) {ISO7741DWR};
+\node[pin] at (0,1.85) {4 canales · aislamiento SPI};
+
+\foreach \yy in {0.7,-0.3,-1.3} {
+  \draw[black!10] (-2.3,\yy) -- (-0.15,\yy);
+  \draw[black!10] (0.15,\yy) -- (2.3,\yy);
+}
+
+\node[chan,anchor=east] at (-0.3,1.2)  {SCLK};
+\node[pin,anchor=west]  at (0.3,1.2)   {INC · pin 5};
+\node[chan,anchor=east] at (-0.3,0.2)  {SCS};
+\node[pin,anchor=west]  at (0.3,0.2)   {INB · pin 4};
+\node[chan,anchor=east] at (-0.3,-0.8) {SDI};
+\node[pin,anchor=west]  at (0.3,-0.8)  {IND · pin 6};
+\node[chan,anchor=east] at (-0.3,-1.8) {SDIO};
+\node[pin,anchor=west]  at (0.3,-1.8)  {INA · pin 3};
+
+\node[pin,anchor=east] at (-0.2,-2.3) {VCC1 1 · GND1 2/8};
+\node[pin,anchor=west] at (0.2,-2.3)  {VCC2 16 · GND2 9/15};
+
+% Tres canales van del MCU al AFE; SDIO regresa del AFE al MCU
+\foreach \yy/\lab in {1.2/SCLK,0.2/SCS,-0.8/SDI} {
+  \draw[sig] (3.35,\yy) -- (2.45,\yy);
+  \draw[sig] (-2.45,\yy) -- (-3.35,\yy);
+}
+\draw[sig] (-3.35,-1.8) -- (-2.45,-1.8);
+\draw[sig] (2.45,-1.8) -- (3.35,-1.8);
+
+% Barrera física: atraviesa el aislador y separa las dos referencias.
+% Se interrumpe en el encabezado del ISO7741 para no cruzar su nombre.
+\draw[dashed, very thick, red!60!black] (0,-3.25) -- (0,1.65);
+\draw[dashed, very thick, red!60!black] (0,2.6) -- (0,3.25);
+\node[font=\sffamily\scriptsize\bfseries, text=red!60!black,
+  fill=white, inner sep=2pt] at (0,3.4)
+  {BARRERA DE AISLAMIENTO GALVÁNICO};
+
+\end{tikzpicture}
+\caption{Esquema del aislamiento SPI. El ISO7741 separa tres señales de ida y
+una de retorno; la barrera se materializa con las tierras GND1 y GND2
+separadas.}
+\label{fig:aislamiento}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Señales que cruzan la barrera de aislamiento.}
+\label{tab:aislamiento}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{1.6cm} p{2.1cm} >{\raggedright\arraybackslash}p{2.7cm} p{2.4cm} X@{}}
+\toprule
+\textbf{Señal} & \textbf{Pin ISO7741} & \textbf{Nombre en el AFE} & \textbf{Dirección} & \textbf{Función} \\
+\midrule
+SCLK & 5 (INC) & SCLK\_MCU & MCU $\rightarrow$ AFE & Reloj SPI. \\
+SCS  & 4 (INB) & SCS\_MCU  & MCU $\rightarrow$ AFE & Selección de chip. \\
+SDI  & 6 (IND) & SDI\_MCU  & MCU $\rightarrow$ AFE & Datos MOSI. \\
+SDIO & 3 (INA) & SDIO\_MCU & AFE $\rightarrow$ MCU & Datos MISO. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Capacidad de canales.} El ISO7741 aísla cuatro señales. Si más
+adelante se agregan dos GPIO de control del AFE, será necesario un segundo
+aislador o un dispositivo de más canales.
+
+\subsection{Dominios de alimentación y referencia}
+
+El lado 1 del ISO7741 se alimenta con \texttt{DVCC\_3v3} (pin 1) y el lado 2 con
+\texttt{AVCC\_3v3} (pin 16). Las tierras correspondientes son GND1 (pines 2 y
+8) y GND2 (pines 9 y 15). Para que la barrera sea efectiva, GND1 y GND2 deben
+ser referencias distintas: la medida usa \texttt{AGND} y el dominio digital
+\texttt{GND\_DIG}. Las dos referencias solo pueden unirse en un punto definido
+si el diseño lo exige, y esa unión debe reflejarse en el layout.
+
+El ISO7741DWR está especificado para 5000 Vrms de aislamiento en el paquete
+DW-16 \cite{iso7741}. El requisito del producto es 2,5 kVCA \cite{rdem01}; el
+margen del componente es suficiente, pero la separación real depende de las
+referencias, del \emph{creepage} y del \emph{clearance} en la PCB.
+
+\subsection{Integridad de la señal y layout}
+
+El enlace SPI se traza con pistas cortas y simétricas, y el retorno de
+corriente se mantiene próximo a cada señal. La separación entre la barrera y
+los planos de cobre se verifica en el layout, junto con el tratamiento de los
+pines EN1/EN2.
+\section{Procesamiento y periféricos}
+\label{sec:procesamiento}
+
+\subsection{ESP32-S3-WROOM-1-N4}
+
+El procesamiento se realiza con el módulo \textbf{ESP32-S3-WROOM-1-N4} (U5),
+que integra el SoC ESP32-S3 y 4 MB de flash. El módulo concentra el bus SPI
+aislado del AFE, la UART de RS-485, la interfaz del módulo Wi-Fi HaLow, el bus
+SPI de la microSD y el puerto USB-C de programación y monitorización.
+
+Al módulo lo acompañan U6 (RS-485), U7 (microSD) y J401 (USB-C), además de los
+capacitores de desacople, las resistencias de pull-up y las protecciones de ESD
+que requiere cada interfaz.
+
+\subsection{RS-485}
+
+La interfaz Modbus RTU se implementa con el módulo aislado
+\textbf{VISOM RSM3485PCT} (U6). El módulo integra aislamiento de señal y de
+alimentación, y convierte los niveles lógicos del ESP32-S3 a niveles
+diferenciales RS-485. La interfaz usa UART (TX/RX) más una GPIO de control y
+consume 90 mA sobre el riel de 3.3 V.
+
+\subsection{Wi-Fi HaLow}
+
+El enlace inalámbrico usa el módulo \textbf{Quectel FGH100M} (Morse Micro
+MM6108), con interfaces de 6 SDIO, 4 SPI, 2 UART y 2 GPIO, y un consumo
+estimado de 350 mA. El módulo se integra siguiendo el diseño de referencia del
+fabricante, con su propia alimentación y el conexionado de sus interfaces.
+
+\subsection{Memoria microSD}
+
+La tarjeta microSD se conecta mediante el conector \textbf{tf-card-9p} (U7).
+La interfaz es SPI de cuatro hilos y el consumo estimado es de 200 mA. El
+conector y la tarjeta permiten el registro local de 90 días a intervalos de
+15 minutos, con verificación de integridad a cargo del firmware.
+
+\subsection{USB-C y programación}
+
+El conector \textbf{J401} (\texttt{CON\_USB\_TYPEC\_16P}) se usa para
+programación y monitorización por USB, en el camino USB-C $\rightarrow$ JTAG del
+ESP32-S3. El puerto requiere protecciones ESD y resistencias de terminación si
+se expone fuera del gabinete.
+
+\subsection{Mapa de interfaces}
+
+\begin{table}[H]
+\centering
+\caption{Mapa de interfaces del ESP32-S3-WROOM.}
+\label{tab:interfaces}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.7cm} >{\raggedright\arraybackslash}p{3.4cm} X@{}}
+\toprule
+\textbf{Interfaz} & \textbf{Uso} & \textbf{Destino} \\
+\midrule
+SPI (4 hilos) & Datos y control & RN8302B, a través del ISO7741 \\
+UART (TX/RX) + 1 GPIO & Modbus RTU & VISOM RSM3485PCT \\
+6 SDIO / 4 SPI / 2 UART / 2 GPIO & Enlace de radio & Quectel FGH100M \\
+SPI (4 hilos) & Tarjeta de memoria & microSD \texttt{tf-card-9p} \\
+USB (D+/D$-$) & Programación y monitor & Conector USB-C J401 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Asignación de canales.} El bus SPI del AFE ocupa cuatro
+señales; si se implementan los dos GPIO de control previstos, requieren un
+segundo aislador (Sección~\ref{sec:aislamiento}).
+\section{Arquitectura de alimentación}
+\label{sec:alimentacion}
+
+\subsection{Rieles y fuentes}
+
+La alimentación se deriva de \texttt{Phase\_1} y \texttt{N}. La fuente
+principal \textbf{PS1} (Hi-Link HLK-10M05) entrega 5 V a 2 A y alimenta, a
+través del limitador de carga, el respaldo de supercapacitores y el buck
+digital. La fuente auxiliar \textbf{PS2} (Hi-Link HLK-5M03B) entrega 3.3 V para
+el dominio de medida. El buck \textbf{U3} (AP63203WU-7) genera el riel digital
+de 3.3 V a partir de los 5 V.
+
+\begin{table}[H]
+\centering
+\caption{Rieles de alimentación y fuentes.}
+\label{tab:rieles}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{2.7cm} >{\raggedright\arraybackslash}p{4.3cm} >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Riel} & \textbf{Fuente} & \textbf{Especificación y destino} \\
+\midrule
+5 V & PS1: HLK-10M05 & 5 V / 2 A, 10 W. Alimenta la entrada del SY6280AAC. \\
+5 V limitado & SY6280AAC & Interruptor de distribución con límite de corriente programable. Su salida carga el banco C16/C17 y alimenta la entrada de U3. \\
+AVCC\_3v3 & PS2: HLK-5M03B & 3.3 V, 5 W (1,5 A máximo). Dominio de medida: RN8302B, ISO7741 y acondicionamiento. \\
+DVCC\_3v3 & U3: AP63203WU-7 & 3.3 V / 2 A. Dominio digital: ESP32-S3, RS-485, microSD y FGH100M. \\
+Respaldo & C16, C17: 2$\times$30 F & Dos supercapacitores de 2,7 V en serie; 15 F equivalentes a 5 V. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Limitador de carga.} La rama de carga del banco de
+supercapacitores incorpora un \textbf{Silergy SY6280AAC}, un interruptor de
+distribución de 5,5 V y 2 A en SOT-23-5 con límite de corriente programable
+\cite{sy6280}. El dispositivo se coloca entre el riel de 5 V de PS1 y el banco
+de C16/C17, de modo que la corriente de carga no solicite a PS1 más de lo que
+puede entregar. El límite se programa con una resistencia $R_{\mathrm{SET}}$
+entre el pin ISET (pin 3) y GND:
+
+\begin{equation}
+I_{\mathrm{lim}}\,[\mathrm{A}] = \frac{6800}{R_{\mathrm{SET}}\,[\Omega]}.
+\end{equation}
+
+Para un límite inicial de 1 A, $R_{\mathrm{SET}} = 6{,}8\,\mathrm{k\Omega}$;
+para 2 A, $R_{\mathrm{SET}} = 3{,}4\,\mathrm{k\Omega}$. El valor definitivo debe
+elegirse con el presupuesto de PS1 y la corriente de irrupción admisible. El
+SY6280AAC también incorpora protección de sobrecorriente, cortocircuito,
+sobretemperatura y bloqueo inverso (sin diodo de cuerpo), lo que evita que el
+banco se descargue hacia PS1 cuando el interruptor está apagado.
+
+\noindent\textbf{Ruta de descarga.} La descarga del banco hacia el buck durante
+el \emph{Last Gasp} debe definirse explícitamente: el bloqueo inverso del
+interruptor impide usar la misma rama de carga como camino de descarga. La red
+de D1/D2 debe verificar esa función y, si es necesario, se agrega una ruta de
+descarga independiente.
+
+\subsection{Respaldo Last Gasp}
+
+Los supercapacitores C16 y C17 son dos \textbf{HP-2R7-J306VYJ23} de 30 F y
+2,7 V. Al conectarlos en serie, la capacidad equivalente es:
+
+\begin{equation}
+C_{\mathrm{eq}} = \frac{C_1 C_2}{C_1 + C_2} = \frac{30 \times 30}{30 + 30} = 15\ \mathrm{F}.
+\end{equation}
+
+A 5 V, la energía almacenada es:
+
+\begin{equation}
+E = \tfrac{1}{2} C_{\mathrm{eq}} V^2 = \tfrac{1}{2}(15)(5)^2 = 187{,}5\ \mathrm{J}.
+\end{equation}
+
+El respaldo declarado es de \textbf{3,2 W durante 9 s}, es decir,
+$28{,}8\ \mathrm{J}$. Esa cifra representa alrededor del 15\,\pct de la energía
+almacenada, por lo que el dimensionamiento es conservador. La autonomía real
+depende de la tensión mínima de entrada del buck, de la eficiencia y del
+consumo durante el cierre del archivo.
+
+Con el límite de carga del SY6280AAC, el tiempo teórico para llevar el banco de
+0 V a 5 V es $t = C_{\mathrm{eq}} \Delta V / I_{\mathrm{lim}}$. Para 1 A,
+$t = 15 \times 5 / 1 = 75\ \mathrm{s}$; para 2 A, $37{,}5\ \mathrm{s}$. Son
+cotas idealizadas: la corriente decae al final de la carga y el buck consume
+parte de la corriente disponible.
+
+El banco incluye resistencias de limitación y balanceo: R27 y R28
+($3{,}9\,\mathrm{\Omega}$, 2 W) en serie, R29 y R30 ($1\,\mathrm{k\Omega}$) de
+balanceo, y los diodos Schottky D1 y D2 (MS2A40LWS). La topología de carga y
+descarga se revisa junto con el layout, antes de fabricar.
+
+\subsection{Presupuesto de corriente}
+
+\begin{table}[H]
+\centering
+\caption{Presupuesto de corriente del riel de 3.3 V.}
+\label{tab:presupuesto}
+\small
+\begin{tabular}{@{}l r@{}}
+\toprule
+\textbf{Carga} & \textbf{Consumo (mA)} \\
+\midrule
+ESP32-S3-WROOM & 500 \\
+Quectel FGH100M (Wi-Fi HaLow) & 350 \\
+microSD & 200 \\
+VISOM RSM3485PCT (RS-485) & 90 \\
+RN8302B & 10 \\
+\midrule
+\textbf{Total} & \textbf{1 150} \\
+Capacidad del buck AP63203WU-7 & 2 000 \\
+\textbf{Margen} & \textbf{850 (42,5 \pct)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Nota.} El RN8302B se alimenta de \texttt{AVCC\_3v3} (PS2), no
+de \texttt{DVCC\_3v3}. Por tanto, el consumo del \texttt{DVCC\_3v3} es de
+1 140 mA y el del \texttt{AVCC\_3v3} incluye el AFE y el acondicionamiento. El
+total combinado de 1 150 mA es una cota conservadora para el buck. La
+asignación por riel debe confirmarse con el consumo medido de cada periférico.
+
+\subsection{Árbol de potencia}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  block/.style={draw,rounded corners=2pt,align=center,font=\sffamily\scriptsize,inner sep=3pt,minimum height=0.9cm},
+  src/.style={block,fill=red!8,draw=red!55!black,minimum width=2.8cm},
+  pwr/.style={block,fill=green!8,draw=green!45!black,minimum width=3.2cm},
+  rail/.style={block,fill=green!18,draw=green!45!black,minimum width=3.2cm,font=\sffamily\scriptsize\bfseries},
+  load/.style={block,fill=cyan!8,draw=cyan!45!black,minimum width=2.4cm},
+  pwra/.style={-{Latex[length=1.8mm]},semithick,draw=green!45!black,
+    rounded corners=9pt},
+  lab/.style={font=\sffamily\scriptsize,fill=white,inner sep=1pt}
+]
+% Fuentes
+\node[src] (ac1) at (-1.0,10.0) {Phase\_1 / N};
+\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.8cm] (fb1) at (-1.0,8.6) {FB1};
+\node[pwr] (ps1) at (-1.0,7.2) {PS1 HLK-10M05\\5 V / 2 A};
+\node[rail] (v5) at (-1.0,5.8) {5 V};
+
+\node[src] (ac2) at (7.2,10.0) {Phase\_1 / N};
+\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.8cm] (fb2) at (7.2,8.6) {FB2};
+\node[pwr] (ps2) at (7.2,7.2) {PS2 HLK-5M03B\\3.3 V / 5 W};
+\node[rail] (avcc) at (7.2,5.8) {AVCC\_3v3};
+
+% Respaldo y buck
+\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.8cm] (lim) at (-4.6,5.8) {SY6280AAC\\limitador de carga};
+\node[block,fill=yellow!18,draw=yellow!45!black,minimum width=2.8cm] (sc) at (-4.6,4.2) {2$\times$30 F\\serie + balanceo};
+\node[pwr] (buck) at (-1.0,4.2) {U3 AP63203\\3.3 V / 2 A};
+\node[rail] (dvcc) at (-1.0,2.8) {DVCC\_3v3};
+
+% Cargas
+\node[load] (esp)  at (-4.4,0.0) {ESP32-S3\\500 mA};
+\node[load] (hal)  at (-1.6,0.0) {FGH100M\\350 mA};
+\node[load] (sd)   at (1.2,0.0)  {microSD\\200 mA};
+\node[load] (rs)   at (4.0,0.0)  {RSM3485PCT\\90 mA};
+\node[load] (rn)   at (7.2,0.0)  {RN8302B\\10 mA};
+
+% Conexiones
+\draw[pwra] (ac1) -- (fb1);
+\draw[pwra] (fb1) -- (ps1);
+\draw[pwra] (ps1) -- (v5);
+\draw[pwra] (v5.west) -- (lim.east);
+\draw[pwra] (lim.south) -- (sc.north);
+\draw[pwra, dashed] (sc.east) -- (buck.west);
+\draw[pwra] (buck) -- (dvcc);
+
+\draw[pwra] (ac2) -- (fb2);
+\draw[pwra] (fb2) -- (ps2);
+\draw[pwra] (ps2) -- (avcc);
+
+% Bus DVCC: alimenta el dominio digital, no el RN8302B.
+% Cada derivación es un codo ortogonal con el mismo radio, centrado en su carga.
+\draw[pwra, line width=1.2pt] (dvcc.south) -- ++(0,-1.15) coordinate (bus);
+\draw[pwra, line width=1.2pt] (bus) -| (esp.north);
+\draw[pwra, line width=1.2pt] (bus) -| (hal.north);
+\draw[pwra, line width=1.2pt] (bus) -| (sd.north);
+\draw[pwra, line width=1.2pt] (bus) -| (rs.north);
+\fill[green!45!black] (bus) circle (1.6pt);
+\draw[pwra] (avcc.south) -- (rn.north);
+
+% Last gasp
+\begin{scope}[on background layer]
+\node[draw=green!45!black, dashed, rounded corners, fit=(sc), inner sep=6pt,
+      label={[font=\sffamily\scriptsize\bfseries,color=green!45!black]above:Last Gasp}] {};
+\end{scope}
+
+\end{tikzpicture}
+\caption{Árbol de potencia. PS1 alimenta el respaldo y el buck digital a través
+del limitador de carga; PS2 alimenta el dominio de medida. Las corrientes
+corresponden al presupuesto de la Tabla~\ref{tab:presupuesto}. La línea
+discontinua entre el banco y el buck indica la ruta de descarga del
+\emph{Last Gasp}.}
+\label{fig:power}
+\end{figure}
+
+\subsection{Integridad de potencia y térmica}
+
+La corriente de irrupción, la disipación del buck y de R27/R28 durante la
+carga, el tiempo real de respaldo y la temperatura de los supercapacitores y
+del módulo RS-485 se calculan antes de fabricar. El orden de arranque entre
+PS1, PS2 y el buck también debe definirse para evitar corrientes inversas
+durante el encendido y el corte de red.
+\section{Aspectos por desarrollar}
+\label{sec:desarrollo}
+
+La arquitectura descrita está definida a nivel de bloques, componentes e
+interfaces. Antes de fabricar la PCB y cerrar la lista de materiales quedan los
+puntos que se enumeran a continuación. Se reúnen en esta sección para que el
+cuerpo de la nota describa el diseño y no su proceso de revisión.
+
+\subsection{Criterios de medida y calibración}
+
+\begin{itemize}
+  \item Definir el modelo de transformador de corriente (núcleo partido,
+        salida de 333 mV) y su rango de operación.
+  \item Completar la relación de los divisores de tensión, la tensión máxima
+        por canal y la potencia disipada en las resistencias de atenuación.
+  \item Definir la frecuencia de corte de los filtros RC, la simetría de las
+        pistas diferenciales, la ubicación de los capacitores de desacople y el
+        plano de referencia del AFE.
+  \item Establecer el procedimiento de calibración de ganancia y fase contra un
+        patrón, y la verificación de deriva para la clase 2.
+\end{itemize}
+
+\subsection{Integridad del aislamiento}
+
+\begin{itemize}
+  \item Asignar referencias separadas \texttt{AGND} y \texttt{GND\_DIG} a GND1
+        y GND2 del ISO7741, y decidir si se unen en un punto y en cuál.
+  \item Verificar el \emph{creepage}, el \emph{clearance} y la separación entre
+        la barrera y los planos de cobre en el layout.
+  \item Definir la longitud máxima del bus SPI, el retorno de corriente, la
+        simetría de las pistas y el tratamiento de los pines EN1/EN2.
+  \item Decidir si se implementan los dos GPIO de control del AFE; requieren un
+        segundo aislador o un dispositivo de más canales.
+\end{itemize}
+
+\subsection{Protección y EMC}
+
+\begin{itemize}
+  \item Verificar la tensión nominal de la bornera U4 y de los fusibles
+        F1--F3 (250 V) frente a 440 V entre fases en 3P3W.
+  \item Justificar el fusible de 2 A frente a la recomendación de 1 A/250 VCA
+        del fabricante del HLK-5M03.
+  \item Definir el neutro sin fusible, la coordinación de protecciones, la
+        energía absorbida por los MOV y el poder de corte de los fusibles.
+  \item Definir la unión de \texttt{GND} con la tierra de protección (PE) y el
+        comportamiento ante una falla de fase a tierra.
+  \item Agregar filtros de modo común y protecciones ESD en el conector USB-C;
+        verificar la inmunidad y las emisiones contra IEC 61000-4-2/4/5/6 y
+        EN 55011 clase B.
+\end{itemize}
+
+\subsection{Alimentación y térmica}
+
+\begin{itemize}
+  \item Definir $R_{\mathrm{SET}}$ del SY6280AAC y la ruta de descarga del
+        banco hacia el buck durante el \emph{Last Gasp}; verificar la red de
+        D1/D2.
+  \item Calcular la corriente de irrupción, la disipación del buck y de R27/R28
+        durante la carga, el tiempo real de respaldo y la temperatura de los
+        supercapacitores y del módulo RS-485.
+  \item Definir el orden de arranque entre PS1, PS2 y el buck.
+  \item Confirmar la asignación de consumo por riel entre \texttt{DVCC\_3v3} y
+        \texttt{AVCC\_3v3}.
+\end{itemize}
+
+\subsection{Procesamiento y periféricos}
+
+\begin{itemize}
+  \item Integrar el módulo FGH100M y su alimentación, y conectar sus interfaces
+        de 6 SDIO, 4 SPI, 2 UART y 2 GPIO.
+  \item Completar los capacitores de desacople, las resistencias de pull-up y
+        las protecciones ESD de U5, U6, U7 y J401.
+  \item Generar la lista de materiales definitiva y el layout de la PCB.
+\end{itemize}
+
+\subsection{Revisión normativa}
+
+No se ha realizado la revisión de cumplimiento. Los requisitos de referencia
+citan IEC 62053-21, IEC 61010-1, IEC 61000-4-30, IEC 61000-4-2/4/5/6 y
+EN 55011. La categoría de medida III, el grado de protección IP y la
+temperatura de operación deben confirmarse con el gabinete y el montaje final.
+
+\subsection{Resumen de acciones}
+
+\begin{table}[H]
+\centering
+\caption{Acciones pendientes antes de fabricar la PCB.}
+\label{tab:acciones}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{0.7cm} >{\raggedright\arraybackslash}p{4.4cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{1.5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Tema} & \textbf{Acción} & \textbf{Prioridad} \\
+\midrule
+1 & Referencias del ISO7741 & Separar \texttt{AGND} y \texttt{GND\_DIG}; definir su unión y verificar la separación en el layout. & Alta \\
+2 & Canales del AFE & Decidir si se agregan los dos GPIO de control y prever un segundo aislador. & Alta \\
+3 & Tensión de entrada & Verificar U4 y F1--F3 para 440 V entre fases en 3P3W. & Alta \\
+4 & Coordinación de protecciones & Justificar el fusible de 2 A, calcular la energía de los MOV y el poder de corte. & Media \\
+5 & Medida de corriente & Seleccionar el TC y definir el punto de operación. & Alta \\
+6 & Divisores y filtros & Completar la relación de los divisores, la potencia disipada y la frecuencia de corte. & Alta \\
+7 & Calibración & Definir el procedimiento de ganancia y fase y la verificación de deriva. & Alta \\
+8 & Respaldo Last Gasp & Definir $R_{\mathrm{SET}}$, la ruta de descarga y verificar D1/D2. & Alta \\
+9 & Térmica & Calcular la disipación de U3 y R27/R28, y la temperatura del banco y del RS-485. & Media \\
+10 & Wi-Fi HaLow & Integrar el FGH100M y su alimentación. & Alta \\
+11 & Periféricos & Completar desacoples, pull-ups y ESD de U5, U6, U7 y J401. & Alta \\
+12 & EMC y normativa & Verificar IEC 61000-4-2/4/5/6, EN 55011, IEC 61010-1 y la categoría de medida III. & Alta \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\section{Conclusiones}
+
+El Analizador Trifásico IoT tiene una arquitectura coherente para un medidor
+trifásico de gestión: entrada protegida, acondicionamiento analógico dedicado,
+AFE RN8302B, aislamiento digital, ESP32-S3 y un conjunto de interfaces adecuado
+para RS-485, Wi-Fi HaLow y registro local. La alimentación con respaldo de
+supercapacitores cubre el requisito de cierre ordenado y el presupuesto de
+corriente del riel digital tiene margen.
+
+La arquitectura, sin embargo, todavía no está lista para fabricar. Los puntos
+críticos son la separación de las referencias del ISO7741, la tensión nominal
+de la bornera y los fusibles, la integración del FGH100M y de los pasivos de
+alimentación y protección de los periféricos, y la falta de cálculos de
+protección, filtros y calibración. Ninguno de estos puntos es un obstáculo
+insalvable; todos deben cerrarse antes de congelar el diseño y el layout. La
+Sección~\ref{sec:desarrollo} reúne las acciones correspondientes.
+
+El valor de la nota está en explicar el porqué de cada bloque y en dejar
+explícitos los criterios de selección: protecciones coordinadas, una barrera
+galvánica real entre medida y comunicación, y un respaldo dimensionado con
+margen sobre la energía necesaria para el cierre ordenado.
+\label{sec:referencias}
+
+\addcontentsline{toc}{section}{Referencias}
+\begin{thebibliography}{99}
+
+\bibitem{rdem01}
+Equipo del proyecto Analizador Trifásico IoT.
+\textit{DR-EM-01: Monitor de Energía Industrial Trifásico --- Product and System
+Requirements}, Rev. 0.3, octubre de 2026.
+
+\bibitem{diagramav2}
+Equipo del proyecto Analizador Trifásico IoT.
+\textit{Arquitectura de referencia V2}, 07/10/2026.
+
+\bibitem{rn8302b_ds}
+RENERGY.
+\textit{RN8302B Datasheet}, versión 3.
+
+\bibitem{rn8302b_um}
+RENERGY.
+\textit{RN8302B User Manual}, v1.1.
+
+\bibitem{iso7741}
+Texas Instruments.
+\textit{ISO7740, ISO7741, ISO7742: High-Speed, Robust-EMC Reinforced and Basic
+Quad-Channel Digital Isolators}, SLLSEP4G, rev. febrero de 2020.
+
+\bibitem{esp32s3_ds}
+Espressif Systems.
+\textit{ESP32-S3 Series Datasheet}.
+
+\bibitem{esp32s3_trm}
+Espressif Systems.
+\textit{ESP32-S3 Technical Reference Manual}.
+
+\bibitem{esp32s3_module}
+Espressif Systems.
+\textit{ESP32-S3-WROOM-1/1U Datasheet}.
+
+\bibitem{supercap}
+Fabricante del supercapacitor.
+\textit{Supercapacitor HP-2R7-J306VYJ23 Datasheet}.
+
+\bibitem{ti_duf27a}
+Texas Instruments.
+\textit{Design Guide: TIDA-010244 --- Three-Phase Shunt-Based Energy Metrology
+Reference Design}, literatura TIDUF27A.
+
+\bibitem{ti_duf27a_layout}
+Texas Instruments.
+\textit{TIDA-010244 Layout Guidelines}.
+
+\bibitem{eval_ade9430}
+Analog Devices.
+\textit{EVAL-ADE9430: Schematic, Layout and User Guide}.
+
+\bibitem{fgh100m}
+Quectel / Morse Micro.
+\textit{Wi-Fi HaLow FGH100M EXT01 V30: Reference Design}.
+
+\bibitem{hx_conn}
+HX.
+\textit{PJ-320A-3P DIP: conector de 3 pines para entrada de corriente}.
+
+\bibitem{jxtconn}
+JXTCONN.
+\textit{C50126V-4P0G56: bornera de 4 vías, 5 mm, 18 A, 250 V}.
+Ficha de producto LCSC, consultada en octubre de 2026.
+\url{https://www.lcsc.com/product-detail/C49291885.html}.
+
+\bibitem{jfcfuse}
+JDT Fuse.
+\textit{JFC2410-0200TS: fusible 2410, 2 A, time-lag}.
+Ficha de producto LCSC, consultada en octubre de 2026.
+\url{https://www.lcsc.com/product-detail/C55058769.html}.
+
+\bibitem{sy6280}
+Silergy.
+\textit{SY6280/SY6280A: 5.5 V, 2 A Low Loss Power Distribution Switch},
+Rev. 0.3.
+\url{https://www.olimex.com/Products/Components/IC/SY6280/resources/SY6280AAC.PDF}.
+
+\bibitem{iec62053}
+International Electrotechnical Commission.
+\textit{IEC 62053-21: Electricity metering equipment --- Particular
+requirements --- Part 21: Static meters for AC active energy (classes 1 and 2)},
+2020.
+
+\bibitem{iec61010}
+International Electrotechnical Commission.
+\textit{IEC 61010-1: Safety requirements for electrical equipment for
+measurement, control, and laboratory use --- Part 1: General requirements},
+2010.
+
+\bibitem{iec61000430}
+International Electrotechnical Commission.
+\textit{IEC 61000-4-30: Electromagnetic compatibility (EMC) --- Part 4-30:
+Testing and measurement techniques --- Power quality measurement methods},
+2015.
+
+\end{thebibliography}
+
+\vspace{0.5em}
+\noindent{\footnotesize\color{unalgray}
+Las referencias normativas se citan como contexto de los requisitos de
+producto; no implican que el prototipo haya sido ensayado ni certificado. Los
+enlaces web se consultaron en octubre de 2026.}
+
+\end{document}

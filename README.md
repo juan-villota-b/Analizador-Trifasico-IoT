@@ -9,11 +9,9 @@
 
 ## 🧭 Diagrama de bloques (V2)
 
-Este es el diseño vigente. Toda decisión de hardware debe ser consistente con este diagrama.
+Este es el diseño vigente. Toda decisión de hardware debe ser consistente con este diagrama:
 
-![Diagrama de bloques V2](documentation/diagrama-de-bloques-v2.png)
-
-> 📎 El mismo diagrama también está en PDF: [`Diagrama de bloquesv2.pdf`](documentation/Diagrama%20de%20bloquesv2.pdf)
+📎 [`Diagrama de bloquesv2.pdf`](documentation/Diagrama%20de%20bloquesv2.pdf)
 
 ---
 
@@ -172,10 +170,9 @@ Analizador trifasico IoT/
 │       └── Library_Analizador.IntLib   ← biblioteca integrada compilada
 │
 ├── documentation/
-│   ├── diagrama-de-bloques-v2.png          ← ⭐ DIAGRAMA VIGENTE (imagen)
-│   ├── Diagrama de bloquesv2.pdf           ← el mismo diagrama en PDF
-│   ├── diagrama de bloques.pdf             ← versión 1 (histórico)
-│   └── Especificacion de Arquitectura.md   ← especificación v2.0 (ver nota)
+│   ├── application-note/                   ← nota de aplicación (LaTeX + PDF)
+│   ├── Diagrama de bloquesv2.pdf           ← diagrama vigente
+│   └── RD_EM_01_Industrial_Energy_Monitor.pdf ← requisitos de producto
 │
 └── references/
     ├── datasheets/
@@ -194,26 +191,6 @@ Analizador trifasico IoT/
 | 3 | `POWER.SchDoc` | Alimentación, respaldo y rieles | HLK-10M05, HLK-5M03B, AP63203WU-7, 2x 30 F, ferritas, diodos Schottky |
 | 4 | `MEASURES.SchDoc` | AFE metrológico y aislamiento | RN8302B, ISO7741, cristal, 4x 100 nF |
 | 5 | `MCU.SchDoc` | Procesamiento y periféricos | ESP32-S3-WROOM-1-N4, RSM3485PCT, tf-card-9p, USB-C |
-
----
-
-## ⚠️ Nota sobre la documentación
-
-> **`documentation/Especificacion de Arquitectura.md` (01/10/2026) está desactualizada respecto al diagrama V2 (07/10/2026).**
->
-> La especificación describe una versión anterior de la arquitectura con componentes que **ya no están en el diseño**:
->
-> | En la especificación | En el diseño V2 |
-> |---|---|
-> | Mornsun LD10-26B05 | **Hi-Link HLK-10M05** |
-> | TLV75733 como LDO AFE | *(eliminado)* |
-> | THVD1450 + ISO7731 + B0503S-1WR3 | **VISOM RSM3485PCT** (módulo integrado) |
-> | ISO7721 / ISO7731 | **ISO7741** |
-> | PCF85063A (RTC I²C) | *(no está en el diseño)* |
-> | MCU "pendiente / STM32" | **ESP32-S3-WROOM** *(decidido)* |
-> | SM712, MOV-20D821K, GDT | **MOV-14D471K** + fusibles |
->
-> La especificación sigue siendo útil por sus **cálculos de derivación, criterios de mases (AGND / GND_DIG / GND_ISO), normativa y lista de compra**, pero **los componentes listados no son los del diseño actual**. Actualizarla es una tarea pendiente.
 
 ---
 
@@ -354,7 +331,6 @@ PCB: enruta zona de potencia
 **Pendiente**
 - [ ] **Módulo Quectel FGH100M** — *no está en `MCU.SchDoc` todavía*
 - [ ] Ruteo del layout de la PCB
-- [ ] Actualizar `Especificacion de Arquitectura.md` a los componentes del V2
 - [ ] Modelo exacto de CT / Rogowski (familia seleccionada, modelo por definir)
 - [ ] Red exacta del divisor de tensión de precisión
 - [ ] Verificar que el segundo AC/DC sea realmente 3.3 V @ 1 A (el esquemático tiene `HLK-5M03B`)
