@@ -135,7 +135,24 @@ GenerateClassCluster=0
 DocumentUniqueId=SRPYGEHL
 
 [Document6]
-DocumentPath=Analizador_PCB.PcbDoc
+DocumentPath=INTERFACES.SchDoc
+AnnotationEnabled=1
+AnnotateStartValue=500
+AnnotationIndexControlEnabled=1
+AnnotateSuffix=
+AnnotateScope=All
+AnnotateOrder=5
+DoLibraryUpdate=1
+DoDatabaseUpdate=1
+ClassGenCCAutoEnabled=1
+ClassGenCCAutoRoomEnabled=0
+ClassGenNCAutoScope=None
+DItemRevisionGUID=
+GenerateClassCluster=0
+DocumentUniqueId=IIUEUNYF
+
+[Document7]
+DocumentPath=ANALIZADOR_PSB.PcbDoc
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
@@ -149,7 +166,7 @@ ClassGenCCAutoRoomEnabled=0
 ClassGenNCAutoScope=None
 DItemRevisionGUID=
 GenerateClassCluster=0
-DocumentUniqueId=XGNBYTKD
+DocumentUniqueId=VXHHJKEP
 
 [Configuration1]
 Name=Sources
