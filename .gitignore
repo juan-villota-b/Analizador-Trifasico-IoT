@@ -37,6 +37,9 @@ sym-lib-table
 Thumbs.db
 desktop.ini
 
+# --- Auditoria Rev3: diagramas y artefactos generados (no versionar) ---
+/documentation/revision_v3/
+
 # --- Excepciones: SI versionar artefactos de fabricacion ---
 !hardware/altium/*.PcbDoc
 !hardware/altium/*.SchDoc
