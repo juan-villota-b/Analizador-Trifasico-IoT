@@ -1,0 +1,10 @@
+Output: Protel
+Type  : ProtelNetlist
+From  : Project [Analizador_trifasico_IoT_pcb.PrjPcb]
+   Generated File[Analizador_trifasico_IoT_pcb.NET]
+
+
+Files Generated   : 1
+Documents Printed : 0
+
+Finished Output Generation At 22:50:06 On 31/10/2026
