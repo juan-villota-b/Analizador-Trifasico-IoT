@@ -149,6 +149,8 @@ El **supercapacitor** sostiene la alimentación **3.2 W durante 9 s** tras un co
 Analizador trifasico IoT/
 ├── README.md
 ├── CONTRIBUTING.md                ← guía de trabajo en equipo (leer antes de commitear)
+├── REPORT.md                      ← auditoría pin a pin, revisión 2 (01/11/2026)
+├── REPORT_v1.md                   ← revisión 1 conservada como historial (31/10/2026)
 ├── .gitignore
 ├── .gitattributes
 │

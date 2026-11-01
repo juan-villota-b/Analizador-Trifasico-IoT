@@ -80,6 +80,37 @@ Analizador trifasico IoT/
     └── reference-designs/
 ```
 
+### Netlist del proyecto (archivo de las redes)
+
+El netlist exportado desde Altium (`Design → Netlist for Project → Protel`) está en:
+
+`hardware/altium/Project Outputs for Analizador_trifasico_IoT_pcb/Analizador_trifasico_IoT_pcb.NET`
+
+Es texto plano y la referencia más fiable de conectividad entre hojas: úsalo antes de
+reconstruir redes por geometría. La carpeta cae dentro de `Project Outputs for*/`
+(`.gitignore`), pero los archivos ya rastreados sí se versionan:
+
+| Archivo | Contenido |
+|---|---|
+| `Analizador_trifasico_IoT_pcb.NET` | netlist (formato Protel) |
+| `Analizador_trifasico_IoT_pcb.csv` | BOM |
+| `Analizador_trifasico_IoT_pcb.xlsx` | BOM |
+| `Status Report.Txt` | reporte de estado |
+
+Si cambia el esquemático, vuelve a exportar el `.NET` desde Altium; no lo edites a mano.
+
+### BOM: conectores de header ya en stock (ignorar)
+
+Estos conectores **no** necesitan fabricante, part number, proveedor ni link, porque
+ya se tienen en el laboratorio. Al armar o revisar el BOM, **ignóralos**: no los
+reportes como datos faltantes ni los incluyas en la lista de compra.
+
+| Designador | Símbolo | Hoja |
+|---|---|---|
+| `200` | `H_Male_2x1_TH_100mil` | `POWER.SchDoc` |
+| `500` | `H_Male_7x1_TH_100mil` | `INTERFACES.SchDoc` |
+| `501` | `H_Male_7x1_TH_100mil` | `INTERFACES.SchDoc` |
+
 ---
 
 ## 4. Reglas duras (no negociables)
