@@ -1,0 +1,7 @@
+# Datos de captura y artefactos locales
+capturas/
+*.csv
+*.png
+__pycache__/
+*.pyc
+*.pyo

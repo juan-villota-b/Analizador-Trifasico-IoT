@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STPM34 · Formas de onda</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">ST</div>
+      <div class="brand-text">
+        <h1>STPM34 · Formas de onda</h1>
+        <p>Vista de tensión, corriente, desfase y factor de potencia</p>
+      </div>
+    </div>
+    <div class="statusbar">
+      <span class="pill" id="sourcePill">Demo</span>
+      <span class="pill" id="connPill"><span class="dot ok"></span><span id="fpsText">60 FPS</span></span>
+      <span class="pill" id="fsPill">7.81 kS/s</span>
+      <span class="pill" id="freqPill">60 Hz</span>
+    </div>
+  </header>
+
+  <nav class="toolbar" aria-label="Controles de visualización">
+    <div class="tabs" role="tablist" aria-label="Canales">
+      <button class="tab active" data-channel="1" role="tab" aria-selected="true">
+        Canal 1 <small>V1 / C1</small>
+      </button>
+      <button class="tab" data-channel="2" role="tab" aria-selected="false">
+        Canal 2 <small>V2 / C2</small>
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <span class="control-label">Vista</span>
+      <div class="segmented" id="viewToggle">
+        <button data-view="separate" class="active">Separadas</button>
+        <button data-view="combined">Combinada</button>
+      </div>
+    </div>
+
+    <div class="toolbar-group">
+      <label class="control-label" for="cyclesSelect">Ciclos</label>
+      <select id="cyclesSelect">
+        <option value="2" selected>2 ciclos</option>
+        <option value="4">4 ciclos</option>
+        <option value="6">6 ciclos</option>
+      </select>
+    </div>
+
+    <div class="toolbar-group">
+      <label class="control-label" for="lineFreqSelect">Línea</label>
+      <select id="lineFreqSelect">
+        <option value="50">50 Hz</option>
+        <option value="60" selected>60 Hz</option>
+      </select>
+    </div>
+
+    <div class="toolbar-group">
+      <label class="control-label" for="triggerSelect">Trigger</label>
+      <select id="triggerSelect">
+        <option value="auto" selected>Auto V</option>
+        <option value="free">Libre</option>
+      </select>
+    </div>
+
+    <div class="toolbar-group toolbar-actions">
+      <button id="pauseBtn" class="btn">Pausar</button>
+      <button id="clearBtn" class="btn ghost">Limpiar</button>
+    </div>
+  </nav>
+
+  <main class="layout">
+    <section class="charts-panel">
+      <div class="charts-head">
+        <div>
+          <h2 id="chartTitle">Canal 1</h2>
+          <p id="chartSubtitle">V1 y C1 · 2 ciclos · 50 Hz</p>
+        </div>
+        <div class="phase-readout" id="phaseReadout">Desfase — · FP —</div>
+      </div>
+
+      <div id="separateCharts" class="charts-stack">
+        <div class="chart-card">
+          <div class="chart-label">
+            <span class="swatch voltage"></span> Tensión
+            <span class="chart-axis-hint" id="vLabelHint">V1 [V] · eje izquierdo</span>
+          </div>
+          <canvas id="voltageCanvas" aria-label="Gráfica de tensión"></canvas>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-label">
+            <span class="swatch current"></span> Corriente
+            <span class="chart-axis-hint" id="iLabelHint">C1 [A] · eje izquierdo</span>
+          </div>
+          <canvas id="currentCanvas" aria-label="Gráfica de corriente"></canvas>
+        </div>
+      </div>
+
+      <div id="combinedChart" class="chart-card combined hidden">
+        <div class="chart-label">
+          <span class="swatch voltage"></span> Tensión
+          <span class="swatch current"></span> Corriente
+          <span class="chart-axis-hint">V eje izquierdo · I eje derecho</span>
+        </div>
+        <canvas id="combinedCanvas" aria-label="Gráfica combinada de tensión y corriente"></canvas>
+      </div>
+
+      <div class="chart-footer">
+        <span id="sampleInfo">— muestras en ventana</span>
+        <span id="rxInfo">— muestras recibidas</span>
+      </div>
+    </section>
+
+    <aside class="side-panel">
+      <section class="card data-card">
+        <div class="card-head">
+          <h2>Datos extraídos</h2>
+          <span class="muted" id="tableUpdated">—</span>
+        </div>
+        <table class="data-table">
+          <tbody>
+            <tr><th>V RMS</th><td id="statVrms">—</td><td>V</td></tr>
+            <tr><th>I RMS</th><td id="statIrms">—</td><td>A</td></tr>
+            <tr><th>V pico</th><td id="statVpeak">—</td><td>V</td></tr>
+            <tr><th>I pico</th><td id="statIpeak">—</td><td>A</td></tr>
+            <tr><th>V p-p</th><td id="statVpp">—</td><td>V</td></tr>
+            <tr><th>I p-p</th><td id="statIpp">—</td><td>A</td></tr>
+            <tr><th>Frecuencia</th><td id="statFreq">—</td><td>Hz</td></tr>
+            <tr><th>Desfase</th><td id="statPhase">—</td><td>°</td></tr>
+            <tr><th>Factor de potencia</th><td id="statPf">—</td><td>—</td></tr>
+            <tr><th>P activa</th><td id="statP">—</td><td>W</td></tr>
+            <tr><th>S aparente</th><td id="statS">—</td><td>VA</td></tr>
+            <tr><th>Q reactiva</th><td id="statQ">—</td><td>var</td></tr>
+            <tr><th>Muestras</th><td id="statN">—</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">Desfase positivo: la corriente atrasa respecto a la tensión. Negativo: adelanta. En UART, V/I RMS y potencias vienen de los registros del chip; los picos solo se muestran si hay suficientes muestras de onda.</p>
+      </section>
+
+      <section class="card scale-card">
+        <div class="card-head">
+          <h2>Escala de amplitud</h2>
+          <span class="muted">solo vista</span>
+        </div>
+
+        <div class="scale-row">
+          <div class="scale-title"><span class="swatch voltage"></span> Tensión</div>
+          <label class="check"><input type="checkbox" id="autoV" checked> Auto</label>
+          <input type="range" id="vScaleRange" min="10" max="2000" step="5" value="400">
+          <div class="scale-value">
+            <input type="number" id="vScaleInput" min="1" max="2000" step="1" value="400">
+            <span>V</span>
+          </div>
+        </div>
+
+        <div class="scale-row">
+          <div class="scale-title"><span class="swatch current"></span> Corriente</div>
+          <label class="check"><input type="checkbox" id="autoI" checked> Auto</label>
+          <input type="range" id="iScaleRange" min="0.5" max="500" step="0.5" value="10">
+          <div class="scale-value">
+            <input type="number" id="iScaleInput" min="0.1" max="500" step="0.1" value="10">
+            <span>A</span>
+          </div>
+        </div>
+
+        <p class="hint">La escala cambia únicamente el dibujo. No altera los datos ni la medición.</p>
+      </section>
+
+      <section class="card source-card">
+        <div class="card-head"><h2>Fuente de datos</h2></div>
+        <div class="source-row">
+          <select id="sourceSelect">
+            <option value="demo" selected>Demo 7.8125 kS/s</option>
+            <option value="uart">UART real (STPM34)</option>
+            <option value="ws">WebSocket personalizado</option>
+          </select>
+
+          <div id="uartControls" class="uart-controls hidden">
+            <input type="text" id="uartPort" placeholder="COM3 (vacío = auto)" spellcheck="false">
+            <select id="uartBaud">
+              <option value="auto" selected>Auto</option>
+              <option value="9600">9600</option>
+              <option value="19200">19200</option>
+              <option value="38400">38400</option>
+              <option value="57600">57600</option>
+              <option value="115200">115200</option>
+            </select>
+            <label class="check"><input type="checkbox" id="uartCrc" checked> CRC</label>
+          </div>
+
+          <input type="text" id="wsUrl" value="ws://localhost:8000/ws" spellcheck="false">
+          <button id="connectBtn" class="btn ghost">Conectar</button>
+        </div>
+        <p class="hint" id="sourceHint">Demo: onda sintética de 50/60 Hz, dos canales y 7.8125 kS/s. Para el STPM34 real seleccione UART.</p>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <span>Canvas 2D · 60 FPS · buffer circular · tabla a 5 Hz</span>
+    <span>El UART del STPM34 no alcanza para 2 ciclos suaves; para forma de onda real use SPI/ESP32.</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
