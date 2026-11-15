@@ -1,10 +1,15 @@
-Output: Protel
-Type  : ProtelNetlist
+Output: NC Drill Files
+Type  : NC Drill
 From  : Project [Analizador_trifasico_IoT_pcb.PrjPcb]
-   Generated File[Analizador_trifasico_IoT_pcb.NET]
+   Generated File[Analizador_PCB-RoundHoles-Plated.TXT]
+   Generated File[Analizador_PCB-RoundHoles-NonPlated.TXT]
+   Generated File[Analizador_PCB-SlotHoles-Plated.TXT]
+   Generated File[Analizador_PCB.DRL]
+   Generated File[Analizador_PCB.LDP]
+   Generated File[Analizador_PCB.DRR]
 
 
-Files Generated   : 1
+Files Generated   : 6
 Documents Printed : 0
 
-Finished Output Generation At 9:40:00 a. m. On 5/11/2026
+Finished Output Generation At 11:29:37 p. m. On 13/11/2026
