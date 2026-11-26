@@ -1,4 +1,4 @@
-% ============================================================================
+﻿% ============================================================================
 %  Analizador Trifásico IoT — Nota de aplicación
 %  Documento: AN-ATI-001 · Rev. 1.0 · Noviembre de 2026
 %
@@ -33,6 +33,7 @@
 \usepackage{needspace}
 \usepackage{amsmath}
 \usepackage{tikz}
+\usepackage{pdflscape}
 % Signo de porcentaje robusto: evita el macro \% de babel-español,
 % que falla dentro de tabularx/longtable ("Incompatible glue units").
 \newcommand{\pct}{\text{\char37}}
@@ -82,7 +83,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\sffamily\footnotesize\color{unalgray}AN-ATI-001 · Analizador Trifásico IoT}
-\fancyhead[R]{\sffamily\footnotesize\color{unalgray}Rev. 1.0 · Noviembre de 2026}
+\fancyhead[R]{\sffamily\footnotesize\color{unalgray}Rev. 1.1 · Noviembre de 2026}
 \fancyfoot[C]{\sffamily\footnotesize\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0pt}
@@ -120,7 +121,7 @@
 {\sffamily\LARGE Arquitectura de hardware,\\ protección de entrada y cadena de medida\par}
 \vspace{0.9cm}
 {\sffamily\large\bfseries Nota de aplicación\par}
-{\sffamily\large AN-ATI-001 · Rev. 1.0\par}
+{\sffamily\large AN-ATI-001 · Rev. 1.1\par}
 \vspace{0.35cm}
 {\color{unalblue}\rule{\textwidth}{0.8pt}}
 
@@ -128,8 +129,8 @@
 
 \begin{tabularx}{\textwidth}{@{}>{\bfseries}p{4.3cm}X@{}}
 Documento & Nota de aplicación técnica \\
-Versión & 1.0 (diseño final) \\
-Fecha & 05 de noviembre de 2026 \\
+Versión & 1.1 (alineada con el BOM del 15/11/2026) \\
+Fecha & 26 de noviembre de 2026 \\
 Autor & Equipo del proyecto Analizador Trifásico IoT \\
 Institución & Universidad Nacional de Colombia \\
 Referencia & Diseño final Rev. 1.0 (05/11/2026) \\
@@ -204,7 +205,8 @@ diseño; por eso cada afirmación sobre componentes se apoya en los datasheets
 del fabricante y en la arquitectura de referencia del proyecto.
 
 La nota se limita a los bloques que definen la arquitectura vigente. No es un
-manual de usuario, no describe firmware y no presenta resultados de ensayos.
+manual de usuario, no describe firmware en detalle —su arquitectura propuesta se
+resume en la Sección~\ref{sec:firmware}— y no presenta resultados de ensayos.
 Los criterios de selección, las interfaces y las decisiones de protección se
 explican en el cuerpo del documento; los puntos que aún no están definidos se
 reúnen en la Sección~\ref{sec:desarrollo} para no interrumpir la descripción
@@ -227,14 +229,21 @@ La nota sigue el recorrido de la señal y de la energía por el instrumento:
   \item La Sección~\ref{sec:procesamiento} cubre el ESP32-S3 y las interfaces
         RS-485, Wi-Fi HaLow, microSD y USB-C.
   \item La Sección~\ref{sec:alimentacion} describe los rieles, el respaldo de
-        supercapacitores y el presupuesto de corriente.
+        supercapacitores y el presupuesto de potencia.
+  \item La Sección~\ref{sec:pcb} documenta el layout, las vistas de la placa y
+        los archivos de fabricación.
+  \item La Sección~\ref{sec:firmware} resume la arquitectura del firmware y su
+        relación con el hardware.
+  \item La Sección~\ref{sec:poc} presenta la prueba de concepto realizada con la
+        tarjeta EVALSTPM34.
   \item La Sección~\ref{sec:desarrollo} reúne los aspectos que deben
         completarse antes de fabricar la PCB.
+  \item El apéndice~\ref{app:bom} contiene la lista de materiales completa.
 \end{itemize}
 
 \subsection{Convenciones y nomenclatura}
 
-\textbf{Alcance de la revisión.} Revisión 1.0, diseño final. Describe la
+\textbf{Alcance de la revisión.} Revisión 1.1, diseño final alineado con el BOM y el esquemático del 15/11/2026. Describe la
 arquitectura de hardware y las decisiones tomadas; el prototipo no se ha
 fabricado. Los valores que dependen de una selección posterior se tratan en la
 Sección~\ref{sec:desarrollo}.
@@ -273,145 +282,18 @@ Last Gasp & Operación de respaldo para cerrar el registro de forma ordenada tra
 \subsection{Diagrama de bloques}
 
 La Figura~\ref{fig:bloques} presenta el diagrama de bloques del instrumento,
-con los bloques, las interfaces y los rangos de operación del diseño. Las
-líneas azules representan señales; las verdes, distribución de energía.
+con los bloques, las interfaces y los rangos de operación del diseño. En el
+diagrama, las líneas rojas representan la distribución de energía y las azules,
+las señales. El detalle de interfaces y GPIO está en la
+Tabla~\ref{tab:interfaces}.
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[
-  x=1cm,y=1cm,
-  block/.style={draw, rounded corners=2pt, align=center,
-    font=\sffamily\scriptsize, inner sep=3pt, minimum height=1.05cm},
-  input/.style={block, fill=red!8, draw=red!55!black,
-    text width=3.25cm, minimum width=3.45cm},
-  prot/.style={block, fill=orange!10, draw=orange!55!black,
-    text width=3.25cm, minimum width=3.45cm},
-  meas/.style={block, fill=yellow!18, draw=yellow!45!black,
-    text width=3.25cm, minimum width=3.45cm},
-  iso/.style={block, fill=purple!8, draw=purple!45!black,
-    text width=3.25cm, minimum width=3.45cm},
-  dig/.style={block, fill=blue!8, draw=blue!45!black,
-    text width=3.25cm, minimum width=3.45cm},
-  pwr/.style={block, fill=green!8, draw=green!45!black,
-    text width=2.45cm, minimum width=2.65cm},
-  per/.style={block, fill=cyan!8, draw=cyan!45!black,
-    text width=2.35cm, minimum width=2.55cm},
-  sig/.style={-{Latex[length=1.7mm]}, semithick, draw=blue!55!black,
-    rounded corners=8pt},
-  sigbus/.style={semithick, draw=blue!55!black, rounded corners=8pt},
-  pwra/.style={-{Latex[length=1.7mm]}, semithick, draw=green!45!black,
-    rounded corners=8pt},
-  pwrbus/.style={semithick, draw=green!45!black, rounded corners=8pt},
-  lab/.style={font=\sffamily\tiny, fill=white, inner sep=1.2pt},
-  stage/.style={font=\sffamily\tiny\bfseries, text=black!60}
-]
-
-% Encabezados funcionales
-\node[stage] at (1.5,1.35) {ALIMENTACIÓN};
-\node[stage] at (7.4,1.35) {MEDIDA, AISLAMIENTO Y CONTROL};
-
-% Columna izquierda: generación, respaldo y rieles
-\node[pwr] (ps1) at (0,0)
-  {PS1 · HLK-10M05\\5 V / 2 A};
-\node[pwr] (ps2) at (3.0,-2.4)
-  {PS2 · B0503S-1WR3\\AVCC\_3v3 / 1 W};
-\node[pwr] (d200) at (0,-1.2)
-  {D200 · OR-ing\\5 V};
-\node[pwr] (backup) at (0,-2.4)
-  {TPS2553 + 2$\times$30 F\\respaldo Last Gasp};
-\node[pwr] (d201) at (0,-3.6)
-  {D201 · OR-ing\\respaldo};
-\node[pwr] (buck) at (0,-4.8)
-  {U201 · AP63203\\DVCC\_3v3 / 2 A};
-
-% Bus de 5 V: todos los bloques cuelgan del mismo riel
-\draw[pwrbus] (1.5,0) -- (1.5,-4.8);
-\draw[pwra] (ps1.east) -- (1.5,0);
-\draw[pwra] (1.5,-1.2) -- (d200.east);
-\draw[pwra] (1.5,-2.4) -- (backup.east);
-\draw[pwra] (1.5,-3.6) -- (d201.east);
-\draw[pwra] (1.5,-4.8) -- (buck.east);
-\draw[pwra] (1.5,-2.4) -- (ps2.west);
-\node[lab] at (1.5,0.35) {5 V};
-
-% Columna central: flujo principal
-\node[input] (mains) at (7.4,0)
-  {Red trifásica 3P4W\\L1 / L2 / L3 / N\\120/208 V};
-\node[prot] (term) at (7.4,-1.55)
-  {Bornera U301 · 4 vías\\C50126V-4P0G56};
-\node[prot] (prot) at (7.4,-3.1)
-  {Protección de entrada\\F300--F302 (200 mA) + RV300--RV302};
-\node[meas] (cond) at (7.4,-4.65)
-  {Acondicionamiento analógico\\divisores 6$\times$165 k$\Omega$ + 1 k$\Omega$\\CT 5.1 $\Omega$ + 1 k$\Omega$ / 33 nF};
-\node[meas] (afe) at (7.4,-6.2)
-  {AFE RN8302B\\3 V + 4 I · 830 mVp};
-\node[iso] (iso) at (7.4,-7.75)
-  {ISO7741 · 4 canales\\aislamiento SPI};
-\node[dig] (mcu) at (7.4,-9.3)
-  {\mbox{ESP32-S3-WROOM-1-N4}\\procesamiento y control};
-
-% Programación a la derecha y periféricos bajo el procesador
-\node[per] (usb) at (12.0,-9.3)
-  {USB-C · J400\\programación / monitoreo};
-\node[per] (rs485) at (4.0,-11.8)
-  {RS-485\\VISOM RSM3485PCT};
-\node[per] (halow) at (7.4,-11.8)
-  {Wi-Fi HaLow\\Quectel FGH100M\\headers 500/501};
-\node[per] (sd) at (10.8,-11.8)
-  {microSD\\tf-card-9p};
-
-% Flujo vertical de entrada, medida y control
-\draw[sig] (mains) -- (term);
-\draw[sig] (term) -- (prot);
-\draw[sig] (prot) -- node[lab,right=3pt] {L1/L2/L3/N} (cond);
-\draw[sig] (cond) -- (afe);
-\draw[sig] (afe) -- node[lab,right=3pt] {SPI} (iso);
-\draw[sig] (iso) -- node[lab,right=3pt] {SPI aislado} (mcu);
-\draw[sig] (mcu) -- node[lab,above=2pt] {USB / JTAG} (usb);
-
-% Derivación protegida hacia la fuente principal
-\draw[sigbus] (prot.west) -- (4.85,-3.1) -- (4.85,0.82) -- (0,0.82);
-\node[lab] at (2.6,0.98) {L1 / N};
-\draw[sig] (0,0.82) -- (ps1.north);
-
-% Rama de respaldo y fuente auxiliar de medida
-\draw[pwra] (ps2.east) -- (5.4,-2.4) -- (5.4,-6.2);
-\node[lab,above=2pt] at (5.0,-2.4) {AVCC\_3v3};
-\draw[pwra] (5.4,-6.2) -- (afe.west);
-\node[lab] at (4.35,-6.02) {20 mA};
-
-% Distribución DVCC: bus lateral independiente de las señales
-\draw[pwrbus] (buck.west) -- (-1.65,-4.8) -- (-1.65,-13.25)
-  -- (10.8,-13.25);
-\draw[pwra] (-1.65,-9.3) -- node[lab,above=2pt]
-  {DVCC\_3v3 · 500 mA} (mcu.west);
-\draw[pwra] (4.0,-13.25) -- node[lab,pos=0.55,right=3pt]
-  {90 mA} (rs485.south);
-\draw[pwra] (7.4,-13.25) -- node[lab,pos=0.55,right=3pt]
-  {350 mA} (halow.south);
-\draw[pwra] (10.8,-13.25) -- node[lab,pos=0.55,right=3pt]
-  {200 mA} (sd.south);
-
-% Interfaces de los periféricos
-\draw[sigbus] (mcu.south) -- (7.4,-10.72) -- (4.0,-10.72);
-\draw[sigbus] (7.4,-10.72) -- (10.8,-10.72);
-\draw[sig] (4.0,-10.72) -- node[lab,pos=0.55,left=3pt]
-  {UART} (rs485.north);
-\draw[sig] (7.4,-10.72) -- node[lab,pos=0.55,left=3pt]
-  {SPI + control} (halow.north);
-\draw[sig] (10.8,-10.72) -- node[lab,pos=0.55,left=3pt]
-  {SPI} (sd.north);
-
-% Leyenda de dominios
-\node[font=\sffamily\tiny, align=left, anchor=west] at (12.0,-5.6)
-  {\textcolor{red!55!black}{AGND = N (medición)}\\
-   \textcolor{blue!55!black}{DGND (SELV)}\\
-   \textcolor{green!45!black}{RGND (RS-485)}};
-\end{tikzpicture}
-\caption{Diagrama de bloques del Analizador Trifásico IoT. Rojo: entrada y
-dominio de medida referenciado a AGND; amarillo: AFE; morado: aislamiento;
-azul: dominio digital DGND; verde: potencia; cian: periféricos. Las líneas
-azules representan señales y las verdes, distribución de energía.}
+\includegraphics[trim=242.9bp 38.8bp 136.7bp 46.6bp, clip, height=0.76\textheight, keepaspectratio]{Diagrama_Bloques.pdf}
+\caption{Diagrama de bloques del Analizador Trifásico IoT. Rojo: distribución de
+energía; azul: señales. El detalle de interfaces y GPIO está en la
+Tabla~\ref{tab:interfaces} y el presupuesto de potencia en la
+Sección~\ref{sec:alimentacion}.}
 \label{fig:bloques}
 \end{figure}
 
@@ -426,12 +308,12 @@ el ISO7741 aísla el bus SPI que las lleva al ESP32-S3. El microcontrolador
 agrega la energía, sella la hora, escribe en la microSD y atiende las
 comunicaciones RS-485 y Wi-Fi HaLow.
 
-La alimentación se deriva de \texttt{L1\_120VAC} y \texttt{AGND}. La fuente PS1
-(HLK-10M05) entrega 5 V y carga dos supercapacitores de 30 F en serie; el buck
-U201 (AP63203WU-7) genera el riel digital de 3.3 V. La fuente PS2 (B0503S-1WR3)
-genera el riel aislado de 3.3 V para el dominio de medida. El respaldo de
-supercapacitores permite el cierre ordenado del registro tras un corte de red
-(\emph{Last Gasp}).
+La alimentación se deriva de \texttt{L1\_120VAC} y \texttt{AGND}. La fuente
+PS200 (HLK-10M05T) entrega 5 V y carga dos supercapacitores de 30 F en serie a
+través de R207; el buck U200 (HX1002-GEC) genera el riel digital de 3,3 V. La
+fuente U202 (B0503S-1WR3) genera el riel aislado de 3,3 V para el dominio de
+medida. El respaldo de supercapacitores permite el cierre ordenado del registro
+tras un corte de red (\emph{Last Gasp}).
 
 \subsection{Requisitos de referencia}
 
@@ -452,10 +334,10 @@ F-01 & Medición de V, I, P, Q, S, PF y frecuencia, por fase y total, en 3P4W. &
 F-03 & Error $\leq 2\,\pct$ en energía activa (clase 2), de 5\,\pct a 120\,\pct de $I_n$. & Objetivo de exactitud; requiere calibración. \\
 F-04 & 120/208 V por canal de tensión, 50/60 Hz. & Divisores de $6\times165\,\mathrm{k\Omega}+1\,\mathrm{k\Omega}$; U301 y F300--F302 para 120/208 V. \\
 F-05 & 0,05--100 A por fase con TC de núcleo partido. & Entradas de CT con burden de 5.1 $\Omega$ por pierna; CT recomendado 100 A/40 mA. \\
-F-06 & Alimentación auxiliar de 85--265 VCA. & HLK-10M05 desde L1--N; PS2 (B0503S) se alimenta del riel de 5 V. \\
+F-06 & Alimentación auxiliar de 85--265 VCA. & HLK-10M05T desde L1--N; U202 (B0503S) se alimenta del riel de 5 V. \\
 F-07 & Modbus RTU esclavo por RS-485, 9,6--115,2 kbps; Wi-Fi HaLow con MQTT/TLS. & RSM3485PCT implementado; FGH100M conectado por los headers 500/501. \\
 F-08 & Registro en microSD de al menos 90 días a 15 minutos, CSV con verificación de integridad. & microSD implementada; registro a cargo del firmware. \\
-F-09 & Al menos 5 s de operación tras un corte, con cierre ordenado. & Banco de $2\times30$ F (15 F equivalentes), $\approx26$ J útiles, $\approx8$ s a 3.2 W. \\
+F-09 & Al menos 5 s de operación tras un corte, con cierre ordenado. & Banco de $2\times30$ F (15 F equivalentes); 80 J útiles y $\approx25$ s a 3,2 W con el corte en 3,78 V. \\
 NF-02 & Aislamiento de 2,5 kVCA entre medida y comunicación/USB. & ISO7741DWR de 5 kVrms; RSM3485PCT de 2500 VDC; B0503S de 1500 VDC; revisar separación de tierras (Sección~\ref{sec:aislamiento}). \\
 NF-03 & Inmunidad IEC 61000-4-2 nivel 3, 4-4 nivel 3, 4-5 nivel 4 y 4-6 nivel 3; emisión EN 55011 clase B. & Requiere ensayo y layout definitivo. \\
 NF-10 & Categoría de medida III, 300 V; IEC 61010-1. & Requiere revisión normativa. \\
@@ -608,6 +490,17 @@ de medida recibe las cuatro señales; la etapa de potencia toma únicamente
         comportamiento ante una falla de fase a tierra deben definirse antes de
         fabricar.
 \end{itemize}
+\begin{landscape}
+\thispagestyle{empty}
+\begin{figure}[H]
+\centering
+\includegraphics[page=2, width=0.95\linewidth, height=0.87\textheight,
+  keepaspectratio]{../../PCB/SCH/Analizador_trifasico_IoT_pcb.pdf}
+\caption{Hoja \texttt{THREE PHASES}: entrada trifásica y acondicionamiento. Se observan la bornera U301, los fusibles F300--F302, los varistores RV300--RV302, los cuatro jacks de transformador de corriente y los divisores de tensión con su filtro RC.}
+\label{fig:sch-fases}
+\end{figure}
+\end{landscape}
+
 \section{Acondicionamiento analógico y AFE}
 \label{sec:medicion}
 
@@ -690,6 +583,17 @@ Las redes RC de entrada atenúan el ruido de alta frecuencia antes del AFE. Los
 capacitores de desacople se ubican junto a los pines de alimentación del
 circuito integrado y las pistas diferenciales se trazan simétricas y cortas
 para conservar la simetría entre canales.
+\begin{landscape}
+\thispagestyle{empty}
+\begin{figure}[H]
+\centering
+\includegraphics[page=4, width=0.95\linewidth, height=0.87\textheight,
+  keepaspectratio]{../../PCB/SCH/Analizador_trifasico_IoT_pcb.pdf}
+\caption{Hoja \texttt{MEASURES}: AFE metrológico y aislamiento. El RN8302B con sus siete canales, el cristal de 8,192~MHz, el ISO7741 con el SPI de cuatro hilos y el DC-DC aislado U202 que alimenta el dominio de medida.}
+\label{fig:sch-medidas}
+\end{figure}
+\end{landscape}
+
 \section{Aislamiento galvánico}
 \label{sec:aislamiento}
 
@@ -859,33 +763,61 @@ se expone fuera del gabinete.
 \caption{Mapa de interfaces del ESP32-S3-WROOM.}
 \label{tab:interfaces}
 \small
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.7cm} >{\raggedright\arraybackslash}p{3.4cm} X@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.2cm} >{\raggedright\arraybackslash}p{6.5cm} X@{}}
 \toprule
-\textbf{Interfaz} & \textbf{Uso} & \textbf{Destino} \\
+\textbf{Interfaz} & \textbf{Señales y GPIO (pin)} & \textbf{Destino} \\
 \midrule
-SPI (4 hilos) & Datos y control & RN8302B, a través del ISO7741 \\
-UART (TX/RX) + 1 GPIO & Modbus RTU & VISOM RSM3485PCT \\
-6 SDIO / 4 SPI / 2 UART / 2 GPIO & Enlace de radio & Quectel FGH100M \\
-SPI (4 hilos) & Tarjeta de memoria & microSD \texttt{tf-card-9p} \\
-USB (D+/D$-$) & Programación y monitor & Conector USB-C J400 \\
+SPI3 (4 hilos) & MOSI IO14 (22), CS IO21 (23), CLK IO47 (24), MISO IO48 (25) & RN8302B, a través del ISO7741 \\
+SPI2 (4 hilos) & CS IO10 (18), MOSI IO11 (19), CLK IO12 (20), MISO IO13 (21) & Quectel FGH100M, headers 500/501 \\
+SPI2 compartido & CS IO38 (31), CD IO9 (17) & microSD \texttt{tf-card-9p} \\
+UART (TX/RX) + CON & TX IO17 (10), RX IO18 (11), CON IO40 (33) & VISOM RSM3485PCT (Modbus RTU) \\
+Control HaLow & RST IO5 (5), WAKE IO6 (6), IRQ IO7 (7) & Quectel FGH100M \\
+USB 1.1 FS & D$-$ IO19 (13), D+ IO20 (14) & Conector USB-C J400 \\
+Arranque & BOOT IO0 (27), EN pin 3 & Botones SW401/SW400 y RC \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\noindent\textbf{Asignación de canales.} El bus SPI del AFE ocupa cuatro
-señales; si se implementan los dos GPIO de control previstos, requieren un
-segundo aislador (Sección~\ref{sec:aislamiento}).
+\noindent\textbf{Asignación de canales.} El AFE usa un bus SPI dedicado y
+aislado (SPI3), de modo que su tráfico no comparte pines con el resto. El
+HaLow y la microSD comparten SPI2 sobre IO11--IO13 y se seleccionan con CS
+independientes (IO10 e IO38); el módulo HaLow suma tres líneas de control
+(RST, WAKE e IRQ) que no pasan por el aislador. El bus SPI del AFE ocupa cuatro
+señales; si se implementan los dos GPIO de control previstos para el AFE,
+requieren un segundo aislador (Sección~\ref{sec:aislamiento}).
+\begin{landscape}
+\thispagestyle{empty}
+\begin{figure}[H]
+\centering
+\includegraphics[page=5, width=0.95\linewidth, height=0.87\textheight,
+  keepaspectratio]{../../PCB/SCH/Analizador_trifasico_IoT_pcb.pdf}
+\caption{Hoja \texttt{MCU}: procesamiento y programación. El ESP32-S3-WROOM-1-N4, el conector USB-C, los botones EN y BOOT con su red RC, y la protección USBLC6.}
+\label{fig:sch-mcu}
+\end{figure}
+\end{landscape}
+
+\begin{landscape}
+\thispagestyle{empty}
+\begin{figure}[H]
+\centering
+\includegraphics[page=6, width=0.95\linewidth, height=0.87\textheight,
+  keepaspectratio]{../../PCB/SCH/Analizador_trifasico_IoT_pcb.pdf}
+\caption{Hoja \texttt{INTERFACES}: comunicaciones y almacenamiento. El RSM3485PCT aislado con su protección SM712, la ranura microSD y los headers 500/501 del módulo HaLow.}
+\label{fig:sch-interfaces}
+\end{figure}
+\end{landscape}
+
 \section{Arquitectura de alimentación}
 \label{sec:alimentacion}
 
 \subsection{Rieles y fuentes}
 
 La alimentación se deriva de \texttt{L1\_120VAC} y \texttt{AGND}. La fuente
-principal \textbf{PS1} (Hi-Link HLK-10M05) entrega 5 V a 2 A y alimenta, a
-través del limitador de carga, el respaldo de supercapacitores y el buck
-digital. La fuente auxiliar \textbf{PS2} (B0503S-1WR3) entrega 3.3 V aislados para
-el dominio de medida. El buck \textbf{U201} (AP63203WU-7) genera el riel digital
-de 3.3 V a partir de los 5 V.
+principal \textbf{PS200} (Hi-Link HLK-10M05T) entrega 5 V a 2 A y alimenta, a
+través de la red de OR-ing, el respaldo de supercapacitores, el buck digital y
+el módulo HaLow. La fuente auxiliar \textbf{U202} (B0503S-1WR3) entrega 3,3 V
+aislados para el dominio de medida. El buck \textbf{U200} (HX1002-GEC) genera el
+riel digital de 3,3 V a partir de los 5 V.
 
 \begin{table}[H]
 \centering
@@ -896,39 +828,35 @@ de 3.3 V a partir de los 5 V.
 \toprule
 \textbf{Riel} & \textbf{Fuente} & \textbf{Especificación y destino} \\
 \midrule
-5 V & PS1: HLK-10M05 & 5 V / 2 A, 10 W. Alimenta D200, TPS2553, AP63203 y B0503S. \\
-5 V respaldo & TPS2553 + D201 & Interruptor/cargador limitado. Su salida carga el banco C201/C202 y D201 lo conecta a \texttt{Vin\_buck\_5V}. \\
-AVCC\_3v3 & PS2: B0503S-1WR3 & 3.3 V, 1 W (303 mA máximo), aislado. Dominio de medida: RN8302B, ISO7741 y acondicionamiento. \\
-DVCC\_3v3 & U201: AP63203WU-7 & 3.3 V / 2 A. Dominio digital: ESP32-S3, RS-485, microSD y FGH100M. \\
+5 V & PS200: HLK-10M05T & 5 V / 2 A, 10 W. Alimenta D200, la rama de carga del banco, U200 y U202. \\
+5 V respaldo & R207 + D201 & R207 (3,9 $\Omega$ / 2 W) limita la carga del banco C201/C202; D201 lo conecta a \texttt{Vin\_buck\_5V} durante el respaldo. \\
+AVCC\_3v3 & U202: B0503S-1WR3 & 3,3 V, 1 W (303 mA máximo), aislado. Dominio de medida: RN8302B, ISO7741 y acondicionamiento. \\
+DVCC\_3v3 & U200: HX1002-GEC & 3,3 V / 0,7 A según la hoja de datos. Dominio digital: ESP32-S3, RS-485, microSD y FGH100M. \\
 Respaldo & C201, C202: 2$\times$30 F & Dos supercapacitores de 2,7 V en serie; 15 F equivalentes. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\noindent\textbf{Limitador de carga.} La rama de carga del banco de
-supercapacitores incorpora un \textbf{Texas Instruments TPS2553}, un interruptor de
-distribución de 5,5 V y 2 A en WSON-6 con límite de corriente programable
-\cite{tps2553}. El dispositivo se coloca entre el riel de 5 V de PS1 y el banco
-de C201/C202, de modo que la corriente de carga no solicite a PS1 más de lo que
-puede entregar. El límite se programa con una resistencia $R_{\mathrm{SET}}$
-entre el pin ILIM (pin 2) y DGND:
+\subsection{Rama de carga y descarga del banco}
 
-\begin{equation}
-I_{\mathrm{OS,nom}}\,[\mathrm{A}] = \frac{23950}{R_{\mathrm{ILIM}}^{0.977}}.
-\end{equation}
+La carga del banco se resuelve con \texttt{R207} de 3,9~$\Omega$ / 2~W en serie
+entre \texttt{Vout\_5V} y C201/C202. Con el banco vacío, la corriente inicial es
+$5\,\mathrm{V}/3{,}9\,\Omega \approx 1{,}28$~A y la resistencia disipa
+$I^2R \approx 6{,}4$~W, muy por encima de su régimen de 2~W. Si el equipo puede
+arrancar con el banco descargado, ese es un punto débil de la rama y debe
+verificarse en el layout y en el ensayo de arranque en frío.
 
-Para un límite de 1,28 A, $R_{\mathrm{ILIM}} = 20\,\mathrm{k\Omega}$;
-para 0,5 A, $R_{\mathrm{ILIM}} \approx 49{,}9\,\mathrm{k\Omega}$. El valor definitivo debe
-elegirse con el presupuesto de PS1 y la corriente de irrupción admisible. El
-El TPS2553 también incorpora protección de sobrecorriente, cortocircuito,
-sobretemperatura y bloqueo inverso (sin diodo de cuerpo), lo que evita que el
-banco se descargue hacia PS1 cuando el interruptor está apagado.
+La descarga hacia el buck usa \texttt{D201}, un Schottky \texttt{MS2A40LWS} que
+cae 0,37~V típicos a 1~A. Ese OR-ing es lo que permite que el banco alimente
+\texttt{Vin\_buck\_5V} sin devolver corriente hacia PS200.
 
-\noindent\textbf{Ruta de descarga.} La descarga del banco hacia el buck durante
-el \emph{Last Gasp} debe definirse explícitamente: el bloqueo inverso del
-interruptor impide usar la misma rama de carga como camino de descarga. La red
-de D201 debe verificar esa función y, si es necesario, se agrega una ruta de
-descarga independiente.
+\noindent\textbf{Alternativa evaluada.} Un interruptor de distribución con
+límite programable (familia \texttt{TPS2553}, 1,5~A continuos,
+$R_{DS(on)}=100$~m$\Omega$) resolvería el problema de la resistencia: fija la
+corriente de carga con $I_{\mathrm{OS,nom}} = 23950/R_{\mathrm{ILIM}}^{0.977}$ y
+evita que la rama solicite a PS200 más de lo que puede entregar. No forma parte
+del BOM actual; se documenta como la corrección natural si el ensayo confirma la
+sobrecarga de R207 \cite{tps2553}.
 
 \subsection{Respaldo Last Gasp}
 
@@ -939,58 +867,81 @@ Los supercapacitores C201 y C202 son dos \textbf{HP-2R7-J306VYJ23} de 30 F y
 C_{\mathrm{eq}} = \frac{C_1 C_2}{C_1 + C_2} = \frac{30 \times 30}{30 + 30} = 15\ \mathrm{F}.
 \end{equation}
 
-A 5 V, la energía almacenada es:
+A 5 V, la energía almacenada es de 187,5 J. Pero la energía \emph{útil} no la
+fija el capacitor sino el convertidor: el buck solo reduce tensión, de modo que
+deja de regular cuando su entrada cae por debajo de 3,3 V de salida más la
+caída de D201 y la del interruptor interno.
 
 \begin{equation}
-E = \tfrac{1}{2} C_{\mathrm{eq}} V^2 = \tfrac{1}{2}(15)(5)^2 = 187{,}5\ \mathrm{J}.
+E_{\mathrm{útil}} = \tfrac{1}{2}(15)\left(5{,}00^2 - 3{,}78^2\right)
+= 80{,}3\ \mathrm{J}.
 \end{equation}
 
-El respaldo declarado es de \textbf{3,2 W durante $\approx8$ s}, es decir,
-$\approx26\ \mathrm{J}$ útiles. Esa cifra representa alrededor del 14\,\pct de la energía
-almacenada, por lo que el dimensionamiento es conservador. La autonomía real
-depende de la tensión mínima de entrada del buck, de la eficiencia y del
-consumo durante el cierre del archivo.
+Ese valor es el \textbf{43\,\pct} de la energía almacenada y da una autonomía de
+\textbf{25 s a 3,2 W} (80 s a 1 W). Si el banco se cargara aguas abajo de D200,
+la ventana bajaría a 50 J y 16 s. Hay una segunda restricción, que no es
+energética: el buck del BOM entrega 0,7 A, así que la carga de cierre no puede
+superar \textbf{2,3 W}; a ese valor la autonomía es de 35 s.
 
-Con el límite de carga del TPS2553, el tiempo teórico para llevar el banco de
-0 V a 5 V es $t = C_{\mathrm{eq}} \Delta V / I_{\mathrm{lim}}$. Para 1 A,
-$t = 15 \times 4{,}6 / 1{,}28 \approx 54\ \mathrm{s}$. Son
-cotas idealizadas: la corriente decae al final de la carga y el buck consume
-parte de la corriente disponible.
+El tiempo de carga desde vacío no es lineal, porque la corriente por R207 decae
+exponencialmente. Con $\tau = RC = 3{,}9 \times 15 = 58{,}5$~s,
+$t = \tau \ln\!\left(5/(5-4{,}2)\right) \approx 107$~s para llegar a 4,2 V. La
+disipación en R207 al inicio de esa carga se comenta en la sección anterior.
 
-El banco incluye resistencias de balanceo: R200 y R202
-($1\,\mathrm{k\Omega}$) y los diodos Schottky D201 (MS2A40LWS).
-La topología de carga y
-descarga se revisa junto con el layout, antes de fabricar.
+El banco incluye resistencias de balanceo R200 y R202
+($1\,\mathrm{k\Omega}$): con 2~k$\Omega$ totales la fuga es de 2,3~mA y la
+autodescarga tiene $\tau \approx 8{,}3$~h, de modo que un banco cargado se vacía
+en menos de un día con el equipo apagado.
 
-\subsection{Presupuesto de corriente}
+\subsection{Presupuesto de potencia}
+
+La Tabla~\ref{tab:presupuesto} resume el consumo por componente a partir de las
+hojas de datos. La columna \emph{nominal} es el estado de operación sostenido; la
+de \emph{máximo}, el pico publicado o la asignación cuando el fabricante no
+publica el dato.
 
 \begin{table}[H]
 \centering
-\caption{Presupuesto de corriente del riel de 3.3 V.}
+\caption{Presupuesto de consumo por componente.}
 \label{tab:presupuesto}
 \small
-\begin{tabular}{@{}l r@{}}
+\begin{tabularx}{\textwidth}{@{}X c r r r@{}}
 \toprule
-\textbf{Carga} & \textbf{Consumo (mA)} \\
+\textbf{Carga} & \textbf{V} & \textbf{Nominal (mA)} & \textbf{Máximo (mA)} & \textbf{$P_{\max}$ (W)} \\
 \midrule
-ESP32-S3-WROOM & 500 \\
-Quectel FGH100M (Wi-Fi HaLow) & 350 \\
-microSD & 200 \\
-VISOM RSM3485PCT (RS-485) & 90 \\
-RN8302B + ISO7741 & 20 \\
+ESP32-S3-WROOM-1-N4 & 3,3 & 95 & 365 & 1,20 \\
+FGH100M (\texttt{VBAT})\textsuperscript{*} & 3,3 & 200 & 350 & 1,16 \\
+microSD & 3,3 & 100 & 200 & 0,66 \\
+VISOM RSM3485PCT & 3,3 & 30 & 130 & 0,43 \\
+ISO7741 (lado 1) & 3,3 & 3,2 & 4,6 & 0,02 \\
+LED + pull-ups & 3,3 & 10 & 10 & 0,03 \\
 \midrule
-\textbf{Total} & \textbf{1 160} \\
-Capacidad del buck AP63203WU-7 & 2 000 \\
-\textbf{Margen} & \textbf{840 (42 \pct)} \\
+\textbf{Subtotal \texttt{DVCC\_3v3}} & & \textbf{438} & \textbf{1\,060} & \textbf{3,50} \\
+\midrule
+RN8302B & 3,3 & 4,4 & 4,7 & 0,02 \\
+ISO7741 (lado 2) & 3,3 & 2,7 & 4,1 & 0,01 \\
+Cristal 8,192~MHz & 3,3 & 0,5 & 1,0 & $<0{,}01$ \\
+\midrule
+\textbf{Subtotal \texttt{AVCC\_3v3}} & & \textbf{7,6} & \textbf{9,8} & \textbf{0,03} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
+
+\vspace{2pt}
+{\footnotesize \textsuperscript{*}Asignación de diseño: la especificación del módulo no publica corrientes (\texttt{TBD}).}
 \end{table}
 
-\noindent\textbf{Nota.} El RN8302B se alimenta de \texttt{AVCC\_3v3} (PS2), no
-de \texttt{DVCC\_3v3}. Por tanto, el consumo del \texttt{DVCC\_3v3} es de
-1 140 mA y el del \texttt{AVCC\_3v3} incluye el AFE, el ISO y el acondicionamiento. El
-total combinado de 1 160 mA es una cota conservadora para el buck. La
-asignación por riel debe confirmarse con el consumo medido de cada periférico.
+\noindent El total del riel digital, \textbf{1\,060~mA}, excede la capacidad del
+buck del BOM: la hoja de datos del \texttt{HX1002} garantiza \textbf{0,7~A}, de
+modo que el riel queda al \textbf{151\,\pct} en el peor caso. No es un margen
+ajustado: es una sobrecarga. La corrección ---cambiar el buck por uno de al menos
+1,6~A, o reducir la carga--- se plantea en la Sección~\ref{sec:desarrollo}.
+
+\noindent\textbf{Consumo promedio.} La suma de picos no es el consumo real. Sobre
+un ciclo de servicio de 60~s (medición continua, reporte por HaLow, sondeo
+Modbus y escritura en la microSD) el riel de 3,3~V consume \textbf{713~mW
+promedio}, el 20\,\pct{} del peor caso, y la entrada de CA \textbf{1,04~W}, es
+decir 25~Wh por día. El perfil, el reparto por riel y el balance de conversión
+están calculados en el documento PB-ATI-001 \cite{pbati}.
 
 \subsection{Árbol de potencia}
 
@@ -1010,28 +961,28 @@ asignación por riel debe confirmarse con el consumo medido de cada periférico.
 % Fuente principal
 \node[src] (ac1) at (-1.0,11.0) {L1\_120VAC / N};
 \node[block,fill=orange!10,draw=orange!55!black,minimum width=2.8cm] (u301) at (-1.0,9.6) {U301 + F300};
-\node[pwr] (ps1) at (-1.0,8.2) {PS1 HLK-10M05\\5 V / 2 A};
+\node[pwr] (ps1) at (-1.0,8.2) {PS200 HLK-10M05T\\5 V / 2 A · $\eta$ 80~\pct};
 \node[rail] (v5) at (-1.0,6.8) {5 V};
 \node[block,fill=orange!10,draw=orange!55!black,minimum width=2.8cm] (d200) at (-1.0,5.4) {D200 OR-ing};
 \node[rail] (v5b) at (-1.0,4.0) {Vin\_buck\_5V};
 
 % Respaldo
-\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.8cm] (lim) at (-4.8,4.0) {TPS2553\\carga limitada};
+\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.8cm] (lim) at (-4.8,4.0) {R207 3,9~$\Omega$\\2 W};
 \node[block,fill=yellow!18,draw=yellow!45!black,minimum width=2.8cm] (sc) at (-4.8,2.4) {2$\times$30 F\\serie + balanceo};
 \node[block,fill=orange!10,draw=orange!55!black,minimum width=2.8cm] (d201) at (-4.8,0.8) {D201 OR-ing};
 
 % Buck digital y fuente aislada
-\node[pwr] (buck) at (-1.0,2.4) {U201 AP63203\\3.3 V / 2 A};
+\node[pwr] (buck) at (-1.0,2.4) {U200 HX1002\\3,3 V · 0,7 A};
 \node[rail] (dvcc) at (-1.0,0.8) {DVCC\_3v3};
-\node[pwr] (ps2) at (5.2,4.0) {PS2 U202 B0503S-1WR3\\3.3 V / 1 W aislado};
+\node[pwr] (ps2) at (5.2,4.0) {U202 B0503S\\DC-DC aislado · $\eta$ 74~\pct};
 \node[rail] (avcc) at (5.2,2.4) {AVCC\_3v3};
 
 % Cargas
-\node[load] (esp)  at (-4.4,-1.8) {ESP32-S3\\500 mA};
+\node[load] (esp)  at (-4.4,-1.8) {ESP32-S3\\365 mA};
 \node[load] (hal)  at (-1.6,-1.8) {FGH100M\\350 mA};
 \node[load] (sd)   at (1.2,-1.8)  {microSD\\200 mA};
-\node[load] (rs)   at (4.0,-1.8)  {RSM3485PCT\\90 mA};
-\node[load] (rn)   at (7.2,-1.8)  {RN8302B + ISO\\20 mA};
+\node[load] (rs)   at (4.0,-1.8)  {RSM3485PCT\\130 mA};
+\node[load] (rn)   at (7.2,-1.8)  {RN8302B + ISO\\9,8 mA};
 
 % Conexiones
 \draw[pwra] (ac1) -- (u301);
@@ -1040,8 +991,8 @@ asignación por riel debe confirmarse con el consumo medido de cada periférico.
 \draw[pwra] (v5) -- (d200);
 \draw[pwra] (d200) -- (v5b);
 
-% Respaldo: carga y descarga
-\draw[pwra] (v5b.west) -- (lim.east);
+% Respaldo: carga desde el riel de 5 V y descarga hacia el buck
+\draw[pwra] (v5.west) -| (lim.north);
 \draw[pwra] (lim.south) -- (sc.north);
 \draw[pwra] (sc.south) -- (d201.north);
 \draw[pwra] (d201.east) -- (-3.0,0.8) -- (-3.0,4.0) -- (v5b.west);
@@ -1066,21 +1017,289 @@ asignación por riel debe confirmarse con el consumo medido de cada periférico.
 \end{scope}
 
 \end{tikzpicture}
-\caption{Árbol de potencia. PS1 (HLK-10M05) alimenta el riel de 5 V; D200 hace
-el OR-ing y D201 devuelve la energía del banco de supercapacitores. El TPS2553
-limita la carga del banco; el AP63203 genera DVCC\_3v3 y el B0503S-1WR3 genera
-AVCC\_3v3 aislado para el AFE. Las corrientes corresponden al presupuesto de la
-Tabla~\ref{tab:presupuesto}.}
+\caption{Árbol de potencia. PS200 (HLK-10M05T) alimenta el riel de 5 V; D200
+hace el OR-ing y D201 devuelve la energía del banco de supercapacitores. R207
+limita la carga del banco; U200 (HX1002) genera \texttt{DVCC\_3v3} y U202
+(B0503S-1WR3) genera \texttt{AVCC\_3v3} aislado para el AFE. Las corrientes
+corresponden a la Tabla~\ref{tab:presupuesto}.}
 \label{fig:power}
 \end{figure}
 
-\subsection{Integridad de potencia y térmica}
+\subsection{Balance de conversión y térmica}
 
-La corriente de irrupción, la disipación del buck y de R200/R202 durante la
-carga, el tiempo real de respaldo y la temperatura de los supercapacitores y
-del módulo RS-485 se calculan antes de fabricar. El orden de arranque entre
-PS1, PS2 y el buck también debe definirse para evitar corrientes inversas
-durante el encendido y el corte de red.
+La energía que sale de la red no es la que llega a las cargas. La
+Tabla~\ref{tab:balance} propaga el peor caso por la cadena: el módulo AC/DC
+pierde 1,0~W y el buck 0,48~W, con un rendimiento global del 70\,\pct. Ese
+balance es también el que fija la corriente de entrada (70~mA a 120~V, PF~0,6)
+y la coordinación del fusible.
+
+\begin{table}[H]
+\centering
+\caption{Balance de potencia por etapa (peor caso sin rama FEM).}
+\label{tab:balance}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r r r@{}}
+\toprule
+\textbf{Etapa} & \textbf{$P_{in}$ (W)} & \textbf{$P_{out}$ (W)} & \textbf{$\eta$} & \textbf{Pérdida (W)} \\
+\midrule
+PS200 HLK-10M05T & 5,02 & 4,02 & 80\,\pct & 1,00 \\
+U200 buck 5~V$\to$3,3~V & 3,97 & 3,50 & 88\,\pct & 0,48 \\
+U202 B0503S-1WR3 & 0,044 & 0,032 & 74\,\pct & 0,012 \\
+\midrule
+\textbf{Total} & \textbf{5,02} & \textbf{3,53} & \textbf{70\,\pct} & \textbf{1,49} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent El punto térmico crítico no es el módulo AC/DC sino el buck: 0,48~W
+en un SOT-23-5 con $\theta_{JA}\approx250$~$^\circ$C/W suponen unos
+119~$^\circ$C de aumento de unión, por encima del límite típico de
+125~$^\circ$C dentro de un gabinete a 60~$^\circ$C. Los diodos de OR-ing en
+SOD-323 son el segundo punto caliente (0,29~W). El detalle por componente, la
+comparación entre encapsulados y el orden de arranque entre PS200, U202 y U200
+están en PB-ATI-001 \cite{pbati}.
+\begin{landscape}
+\thispagestyle{empty}
+\begin{figure}[H]
+\centering
+\includegraphics[page=3, width=0.95\linewidth, height=0.87\textheight,
+  keepaspectratio]{../../PCB/SCH/Analizador_trifasico_IoT_pcb.pdf}
+\caption{Hoja \texttt{POWER}: alimentación y respaldo. El módulo AC/DC PS200, los diodos de OR-ing D200--D202, la rama de carga del banco con R207 y C201/C202, el buck U200 y el DC-DC aislado U202.}
+\label{fig:sch-power}
+\end{figure}
+\end{landscape}
+
+% ----------------------------------------------------------------------------
+\clearpage
+\section{Diseño de la PCB}
+\label{sec:pcb}
+% ----------------------------------------------------------------------------
+
+La placa se implementó en Altium Designer sobre dos capas de cobre, con máscara
+y serigrafía en ambas caras. La Figura~\ref{fig:pcb} muestra el layout
+terminado en sus dos vistas.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[b]{0.49\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{figuras/pcb_top.png}\\[3pt]
+  {\footnotesize (a) Cara superior}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.49\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{figuras/pcb_bottom.png}\\[3pt]
+  {\footnotesize (b) Cara inferior}
+\end{minipage}
+\caption{Layout de la PCB del Analizador Trifásico IoT. La cara superior
+concentra los conectores de entrada y de transformador de corriente sobre el
+borde, los divisores y el AFE en la zona central, y el módulo ESP32-S3 y el
+USB-C sobre el borde derecho. La cara inferior lleva la identificación del
+proyecto y los contornos de los módulos que se montan del otro lado.}
+\label{fig:pcb}
+\end{figure}
+
+\noindent\textbf{Criterios de disposición.} La placa separa tres zonas: la de
+entrada y protección, la de medida y la digital. Los divisores de tensión y el
+AFE se mantienen alejados de la rama de potencia para no acoplar el rizado del
+conmutado; el módulo AC/DC y el banco de supercapacitores ocupan una zona
+propia; y el ESP32-S3 se ubica en el borde con la antena hacia afuera. La
+barrera galvánica se materializa con la separación de \texttt{AGND},
+\texttt{DGND} y \texttt{RGND} que se describe en la
+Sección~\ref{sec:aislamiento}.
+
+La Figura~\ref{fig:pcb-top} muestra la capa superior de cobre del layout
+terminado: el ruteo, los planos de cobre y las ranuras mecanizadas que
+delimitan la zona de potencia.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{figuras/pcb_top_layer.png}
+\caption{Capa superior (\emph{top layer}) del layout. En rojo el cobre, en
+amarillo la serigrafía y en cian los \emph{pads} y taladros; las zonas negras
+son áreas mecanizadas sin cobre, que en la zona inferior delimitan el bloque de
+potencia (supercapacitores y bornera de entrada). La cota inferior indica
+90,96~mm de ancho de placa.}
+\label{fig:pcb-top}
+\end{figure}
+
+\noindent\textbf{Archivos de fabricación.} El juego de Gerbers
+(\texttt{PCB/Gerbers/Gerbers.zip}) contiene las capas de la
+Tabla~\ref{tab:gerbers}, generadas junto con el netlist y el BOM del
+15/11/2026. La revisión de DRC, la verificación de los Gerbers contra el
+esquemático y la confirmación de las huellas de la biblioteca siguen pendientes
+(Sección~\ref{sec:desarrollo}).
+
+\begin{table}[H]
+\centering
+\caption{Capas y archivos del paquete de fabricación.}
+\label{tab:gerbers}
+\small
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+\textbf{Archivo} & \textbf{Capa} & \textbf{Contenido} \\
+\midrule
+\texttt{GTL} / \texttt{GBL} & Cobre & Capa superior e inferior \\
+\texttt{GTS} / \texttt{GBS} & Máscara & Aperturas de soldadura en ambas caras \\
+\texttt{GTO} / \texttt{GBO} & Serigrafía & Identificación de componentes \\
+\texttt{GM} / \texttt{GM2} & Mecánica & Contorno de la placa y mecanizados \\
+\texttt{DRL} y \texttt{*.TXT} & Taladros & Redondos platinados, ranuras y no platinados \\
+\texttt{APR} & Aperturas & Lista de aperturas de la fresadora \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ----------------------------------------------------------------------------
+% ----------------------------------------------------------------------------
+\section{Arquitectura del firmware}
+\label{sec:firmware}
+% ----------------------------------------------------------------------------
+
+La nota no detalla el firmware, pero sí su arquitectura, porque varias decisiones
+de hardware dependen de ella. La Figura~\ref{fig:firmware} resume el ciclo de
+operación: arranque, bucle de medida a 1~Hz y cierre ordenado ante un corte de
+red.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figuras/firmware.png}
+\caption{Diagrama de firmware propuesto. El arranque configura los dos buses SPI,
+el UART de Modbus y el enlace HaLow; el bucle de 1~s lee el AFE, acumula energía,
+atiende Modbus, registra en la microSD y publica; el corte de red se detecta por
+la tensión de línea medida y dispara el cierre ordenado.}
+\label{fig:firmware}
+\end{figure}
+
+\noindent Tres consecuencias de hardware se desprenden del diagrama:
+
+\begin{itemize}
+  \item \textbf{Bus compartido.} El registro en la microSD y la publicación por
+        HaLow usan el mismo SPI2, así que el firmware debe serializar el acceso
+        y no dejar un \emph{chip select} activo mientras atiende al otro.
+  \item \textbf{Sin RTC.} El BOM no incluye un reloj de tiempo real: la hora se
+        obtiene por SNTP al asociar el HaLow y, sin red, la aporta el maestro
+        Modbus. El \emph{timestamp} de los registros depende de eso.
+  \item \textbf{Ventana de cierre.} El corte se detecta con la tensión de línea
+        que mide el propio AFE, no con una señal dedicada. Como el
+        \texttt{B0503S} deja de entregar por debajo de 4,5~V de entrada, el
+        dominio de medida sobrevive apenas unos 2~s tras el corte, mientras el
+        riel digital aguanta 25~s. El firmware tiene que cerrar el archivo en ese
+        margen.
+\end{itemize}
+
+\noindent La fuente Mermaid del diagrama está en
+\texttt{figuras/firmware.mmd}, junto al resto de las figuras de la nota.
+
+\section{Prueba de concepto con EVALSTPM34}
+\label{sec:poc}
+% ----------------------------------------------------------------------------
+
+Antes de fabricar la placa se armó un banco de prueba con una tarjeta de
+evaluación comercial, para validar la cadena de medida completa sin depender
+del hardware propio: sensor de corriente, conversión, enlace serie con el
+ESP32-S3, telemetría y visualización. La tarjeta \textbf{no} es la del diseño
+final —usa un STPM34 de dos canales en lugar del RN8302B— pero permite
+contrastar la arquitectura, el firmware de adquisición y el panel de
+monitorización.
+
+\begin{table}[H]
+\centering
+\caption{Características de la tarjeta EVALSTPM34-V3 \cite{stpm34}.}
+\label{tab:poc}
+\small
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Parámetro} & \textbf{Valor} \\
+\midrule
+Circuito de medida & STPM34, medidor de doble fase, clase 0,2 \\
+Canales & 2 de tensión y 2 de corriente, con dos transformadores \\
+Tensión nominal & 140 a 300 V eficaces \\
+Corriente & 5 A nominal, 100 A máxima \\
+Frecuencia & 50/60 Hz $\pm$10\,\pct \\
+Interfaz al MCU & UART o SPI, seleccionable con un conmutador en placa \\
+Alimentación & 3,3 V, externa o por USB aislado \\
+Temperatura & $-40$ a $+85$~$^\circ$C \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Montaje.} La tarjeta se alimentó por USB y se conectó a la
+ESP32-S3 por el puerto \texttt{UART} de la placa, con el conmutador en
+posición UART. Dos pinzas de núcleo partido se instalaron sobre los
+conductores de la instalación y la tensión se tomó directamente de la línea.
+El ESP32-S3 publicó las lecturas por Wi-Fi hacia un panel web que grafica
+tensión, corriente, potencia activa, potencia reactiva y frecuencia en una
+ventana móvil de 120~s.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[b]{0.44\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{figuras/poc_montaje.jpg}\\[3pt]
+  {\footnotesize (a) Montaje sobre la instalación}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.44\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{figuras/poc_placa.jpg}\\[3pt]
+  {\footnotesize (b) EVALSTPM34-V3 y enlace UART}
+\end{minipage}
+\caption{Banco de prueba. (a) Las dos pinzas de núcleo partido sobre los
+conductores y la tarjeta alimentada por USB. (b) Detalle de la
+EVALSTPM34-V3: bornera de tensión, conector UART y cabecera de expansión
+digital.}
+\label{fig:poc-montaje}
+\end{figure}
+
+\noindent\textbf{Resultados.} La Tabla~\ref{tab:poc-lecturas} resume la lectura
+del panel con una carga resistiva conectada. El segundo canal quedó sin
+conectar, y por eso aparece en cero: es la referencia de ruido de la tarjeta.
+
+\begin{table}[H]
+\centering
+\caption{Lecturas del panel con una carga conectada (canal 1).}
+\label{tab:poc-lecturas}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r@{}}
+\toprule
+\textbf{Magnitud} & \textbf{CH1} & \textbf{CH2 (sin conectar)} \\
+\midrule
+Tensión & 116,068 V & 0,004 V \\
+Corriente & 4,7628 A & 0,0129 A \\
+Potencia activa & 551,949 W & 0,000 W \\
+Potencia reactiva & 12,621 var & 0,000 var \\
+Potencia aparente & 552,690 VA & 0,000 VA \\
+Factor de potencia & 0,999 & 0,000 \\
+Frecuencia & \multicolumn{2}{c}{60,01 Hz} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{figuras/poc_dashboard.jpg}
+\caption{Panel de telemetría en vivo. Arriba, los valores instantáneos de
+tensión, corriente, potencias y frecuencia por canal; abajo, las gráficas de
+los últimos 120~s. El escalón de corriente y potencia hacia los $-60$~s
+corresponde a un cambio de carga en la instalación.}
+\label{fig:poc-dashboard}
+\end{figure}
+
+\noindent\textbf{Alcance de la prueba.} El banco valida cuatro cosas: que la
+cadena sensor--AFE--UART--MCU funciona de punta a punta, que la trama de
+lectura y su escalado son correctos, que el panel de visualización responde en
+tiempo real y que la resolución del medidor alcanza para distinguir un cambio
+de carga pequeño. No valida, en cambio, el \texttt{RN8302B} ni su SPI
+aislado, la topología 3P4W de tres tensiones y cuatro corrientes, ni la
+barrera galvánica del diseño final: la tarjeta se alimenta por USB y no
+incorpora aislamiento entre la medida y el puerto serie. Ese es justamente el
+aporte del \texttt{ISO7741} y del \texttt{B0503S} en la placa propia
+(Sección~\ref{sec:aislamiento}).
+
+\noindent La prueba deja dos conclusiones prácticas: el panel de monitorización
+y el firmware de adquisición son reutilizables para el prototipo final, y el
+escalado por canal debe calibrarse individualmente, porque el error de
+ganancia de cada transformador se propaga directo a la lectura de potencia.
+
 \section{Aspectos por desarrollar}
 \label{sec:desarrollo}
 
@@ -1135,15 +1354,20 @@ cuerpo de la nota describa el diseño y no su proceso de revisión.
 \subsection{Alimentación y térmica}
 
 \begin{itemize}
-  \item Definir $R_{\mathrm{ILIM}}$ del TPS2553 y la ruta de descarga del
-        banco hacia el buck durante el \emph{Last Gasp}; verificar la red de
-        D201.
-  \item Calcular la corriente de irrupción, la disipación del buck y de R200/R202
-        durante la carga, el tiempo real de respaldo y la temperatura de los
-        supercapacitores y del módulo RS-485.
-  \item Definir el orden de arranque entre PS1, PS2 y el buck.
-  \item Confirmar la asignación de consumo por riel entre \texttt{DVCC\_3v3} y
-        \texttt{AVCC\_3v3}.
+  \item \textbf{Buck U200.} La hoja de datos del \texttt{HX1002} garantiza
+        0,7~A y la carga de pico es 1,06~A. Sustituirlo por uno de al menos
+        1,6~A o reducir la carga antes de fabricar.
+  \item \textbf{Rama de carga del banco.} Verificar la disipación de R207
+        (6,4~W desde banco vacío sobre 2~W nominales) y decidir si se mantiene
+        o se reemplaza por un interruptor con límite programable.
+  \item \textbf{Fusible F300.} Medir la irrupción del HLK en frío y compararla
+        con el $I^2t$ del \texttt{JFC2410-0200TS} (0,0682~A$^2$s); la hoja de
+        datos del módulo recomienda 1~A retardado.
+  \item \textbf{Térmica en gabinete.} Verificar la unión del buck y la
+        temperatura interior con 1,5~W de pérdidas; el HLK admite 60~$^\circ$C
+        de ambiente.
+  \item \textbf{Consumo real.} Medir cada riel en reposo, medición y
+        transmisión para confirmar el perfil de 713~mW promedio.
 \end{itemize}
 
 \subsection{Procesamiento y periféricos}
@@ -1177,15 +1401,16 @@ temperatura de operación deben confirmarse con el gabinete y el montaje final.
 1 & Referencias del ISO7741 & Separar \texttt{AGND} y \texttt{DGND}; definir su unión y verificar la separación en el layout. & Alta \\
 2 & Canales del AFE & Decidir si se agregan los dos GPIO de control y prever un segundo aislador. & Alta \\
 3 & Tensión de entrada & Verificar U301 y F300--F302 para 208 V entre fases en 3P4W. & Alta \\
-4 & Coordinación de protecciones & Justificar el fusible de 200 mA, calcular la energía de los MOV y el poder de corte. & Media \\
-5 & Medida de corriente & Seleccionar el TC y definir el punto de operación. & Alta \\
-6 & Divisores y filtros & Completar la relación de los divisores, la potencia disipada y la frecuencia de corte. & Alta \\
-7 & Calibración & Definir el procedimiento de ganancia y fase y la verificación de deriva. & Alta \\
-8 & Respaldo Last Gasp & Definir $R_{\mathrm{ILIM}}$, la ruta de descarga y verificar D201. & Alta \\
-9 & Térmica & Calcular la disipación de U201 y R200/R202, y la temperatura del banco y del RS-485. & Media \\
-10 & Wi-Fi HaLow & Confirmar el pinout del FGH100M y el cableado de los headers 500/501. & Alta \\
-11 & Periféricos & Completar desacoples, pull-ups y ESD de U401, U500, U501 y J400. & Alta \\
-12 & EMC y normativa & Verificar IEC 61000-4-2/4/5/6, EN 55011, IEC 61010-1 y la categoría de medida III. & Alta \\
+4 & Buck U200 & Sustituir por uno de al menos 1,6 A o reducir la carga de pico (1,06 A sobre 0,7 A). & Alta \\
+5 & Coordinación de protecciones & Justificar el fusible de 200 mA contra su $I^2t$, calcular la energía de los MOV y el poder de corte. & Media \\
+6 & Medida de corriente & Seleccionar el TC y definir el punto de operación. & Alta \\
+7 & Divisores y filtros & Completar la relación de los divisores, la potencia disipada y la frecuencia de corte. & Alta \\
+8 & Calibración & Definir el procedimiento de ganancia y fase y la verificación de deriva. & Alta \\
+9 & Respaldo Last Gasp & Verificar la disipación de R207 y la ruta de descarga por D201. & Alta \\
+10 & Térmica & Verificar la unión de U200 y de D200/D201; calcular la temperatura del banco y del RS-485. & Media \\
+11 & Wi-Fi HaLow & Confirmar el pinout del FGH100M y el cableado de los headers 500/501. & Alta \\
+12 & Periféricos & Completar desacoples, pull-ups y ESD de U401, U500, U501 y J400. & Alta \\
+13 & EMC y normativa & Verificar IEC 61000-4-2/4/5/6, EN 55011, IEC 61010-1 y la categoría de medida III. & Alta \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1195,8 +1420,11 @@ El Analizador Trifásico IoT tiene una arquitectura coherente para un medidor
 trifásico de gestión: entrada protegida, acondicionamiento analógico dedicado,
 AFE RN8302B, aislamiento digital, ESP32-S3 y un conjunto de interfaces adecuado
 para RS-485, Wi-Fi HaLow y registro local. La alimentación con respaldo de
-supercapacitores cubre el requisito de cierre ordenado y el presupuesto de
-corriente del riel digital tiene margen.
+supercapacitores cubre el requisito de cierre ordenado (80~J útiles y 25~s a
+3,2~W), pero el presupuesto de potencia deja al descubierto un límite del BOM:
+el buck del riel digital entrega 0,7~A y la carga de pico es 1,06~A. Ese es el
+punto que debe resolverse antes de fabricar; el cálculo completo y su
+verificación están en PB-ATI-001 \cite{pbati}.
 
 El diseño final está completo a nivel de arquitectura, componentes e
 interfaces. Antes de fabricar quedan las verificaciones de la
@@ -1210,6 +1438,94 @@ El valor de la nota está en explicar el porqué de cada bloque y en dejar
 explícitos los criterios de selección: protecciones coordinadas, una barrera
 galvánica real entre medida y comunicación, y un respaldo dimensionado con
 margen sobre la energía necesaria para el cierre ordenado.
+% ----------------------------------------------------------------------------
+\appendix
+\pagestyle{empty}
+\begin{landscape}
+\thispagestyle{empty}
+\section{Lista de materiales}
+\label{app:bom}
+
+\vspace{4pt}
+\scriptsize
+\noindent BOM exportado de Altium el 15/11/2026: 42 líneas y \textbf{148
+componentes}. Las referencias consecutivas se abrevian como rangos.
+\renewcommand{\arraystretch}{0.86}
+\captionsetup{skip=2pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{7.2cm}>{\raggedright\arraybackslash}p{6.0cm}>{\raggedright\arraybackslash}p{3.9cm}>{\raggedright\arraybackslash}p{4.5cm}r@{}}
+\caption{Lista de materiales del Analizador Trifásico IoT.}
+\label{tab:bom}\\
+\toprule
+\textbf{Referencia} & \textbf{Valor / característica} & \textbf{Part number} & \textbf{Fabricante} & \textbf{Cant.} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Referencia} & \textbf{Valor / característica} & \textbf{Part number} & \textbf{Fabricante} & \textbf{Cant.} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\footnotesize continúa en la página siguiente} & \\
+\endfoot
+\bottomrule
+\endlastfoot
+C100, C108 & 15~pF $\pm$5~\pct{} 50~V C0G 0603 & HGC0603G0150J500NTHJ & Chinocera & 2 \\
+C101, C404 & 1~$\mu$F $\pm$20~\pct{} 50~V 1206 & CL10B105KB8NQNC & Samsung Electro-Mechanics & 2 \\
+C102, C105, C107, C109, C111--C113, C401, C403, C501, C503 & 100~nF 25~V X7R 0603 & 0603X7R104K250NT & AIDE CAPACITOR & 11 \\
+C103, C104, C106, C110, C200, C208, C209, C500, C502 & 10~$\mu$F 16~V X5R 0805 & GRM21BR61C106KE15L & Murata & 9 \\
+C201, C202 & Supercapacitor 30~F 2,7~V & HP-2R7-J306VYJ23 & KAMCAP & 2 \\
+C203 & 4,7~$\mu$F 16~V X5R 0603 & CL10A475KO8NNNC & Samsung Electro-Mechanics & 1 \\
+C207 & 4,7~$\mu$F 25~V radial & RVT1E4R7M0405 & Roqang & 1 \\
+C300--C313 & 33~nF X7R 50~V 0603 & 0603X7R333J500NT & AIDE CAPACITOR & 14 \\
+C400 & 22~$\mu$F 10~V X5R 0805 & HGC0805R5226K100NSLJ & Suzhou Hangjing Elec\&Tech Co.,Ltd & 1 \\
+D200--D202 & Schottky 2~A 40~V SOD-323 & MBRA210LT3G & onsemi & 3 \\
+D203 & LED rojo 0805 & XL-2012SURC & XINGLIGHT & 1 \\
+D204, D205 & LED verde 0805 & XL-2012UGC & XINGLIGHT & 2 \\
+D500 & TVS bidireccional SM712 (RS-485) & SM712 & FUXINSEMI & 1 \\
+F300--F302 & Fusible 200~mA 250~V 2410 time-lag & JFC2410-0200TS & Shenzhen JDT Fuse & 3 \\
+FB100, FB202, FB400, FB500--FB503 & Ferrita 0603, 10~m$\Omega$ / 15~$\Omega$@100~MHz & SCBM160808U090T & Yanchuang & 7 \\
+j400 & Conector USB-C 16 pines & TYPE-C-3.1-16PIN & SHOU HAN & 1 \\
+J500 & Bornera 3 v\'ias 5~mm, 10~A & MX126-5.0-03P-GN01-Cu-S-A & MAX & 1 \\
+L200 & Inductor 3,9~$\mu$H, 2,3~A, 57~m$\Omega$ & ZNR4030ST3R9M & ZE & 1 \\
+PS200 & M\'odulo AC/DC 10~W Hi-Link HLK-10M05T & HLK-10M05T & Hi-Link & 1 \\
+R100--R102, R104, R400, R403, R500, R502--R507 & 10~k$\Omega$ $\pm$1~\pct{} 0603 & 1RC0603F1002 & SAE & 13 \\
+R103, R200, R202, R300, R309--R312, R320, R322--R324, R332, R334--R336, R339 & 1~k$\Omega$ $\pm$1~\pct{} 0603 & FRC0603F1001TS & FOJAN & 17 \\
+R201, R207 & 3,9~$\Omega$ $\pm$5~\pct{} 2~W 2512 & HP122WJ039JT4E & UNI-ROYAL & 2 \\
+R203 & 120~$\Omega$ $\pm$1~\pct{} 0603 & HRC0603F1200ENTNV & HWA CHN & 1 \\
+R204, R501 & 120~$\Omega$ $\pm$1~\pct{} 0603 & HRC0805F1200FNTN & HWA CHN & 2 \\
+R205 & 84,5~$\Omega$ $\pm$1~\pct{} 0603 & CR0603FA84R5G & LIZ & 1 \\
+R206 & 330~$\Omega$ $\pm$5~\pct{} 0603 & FRC0603J331 TS & FOJAN & 1 \\
+R301, R302, R313, R321, R325, R333, R337, R338 & 5,1~$\Omega$ $\pm$1~\pct{} 0603 & HQ03W5F510KT5E & Uniroyal & 8 \\
+R303--R308, R314--R319, R326--R331 & 165~k$\Omega$ $\pm$0,1~\pct{} 0603 & RT0603BRD07165KL & Yageo Group & 18 \\
+R401, R402 & 5,11~k$\Omega$ $\pm$1~\pct{} 0603 & HRC0603F5111ENTN & HWA CHN & 2 \\
+RV300--RV302 & Varistor 470~V, 4,5~kA, 14~mm & MOV-14D471K & Bourns & 3 \\
+SW400, SW401 & Pulsador t\'actil SPST-NO & TSC015A05026A & BZCN & 2 \\
+U100 & AFE medidor trif\'asico RN8302B, LQFP-44 & RN8302B(V3) & Renergy & 1 \\
+U101 & Aislador digital ISO7741DWR, 5~kV & ISO7741DWR & Texas Instruments & 1 \\
+U200 & Buck 3,3~V / 0,7~A, SOT-23-5 & HX1002-GEC & HEXIN & 1 \\
+U202 & DC-DC aislado 1~W, 5~V$\to$3,3~V & B0503S-1WR3 & EVISUN & 1 \\
+U300, U302--U304 & Jack 3,5~mm 3 pines para CT & HX PJ-320A-3P DIP & Hanxia & 4 \\
+U301 & Bornera 4 v\'ias 5~mm, 18~A & C50126V-4P0G56 & JXTCONN & 1 \\
+U400 & Protecci\'on ESD USB, SOT23-6 & USBLC6-2SC6 & STMicroelectronics & 1 \\
+U401 & ESP32-S3-WROOM-1-N4, 4~MB flash & ESP32-S3-WROOM-1-N4 & Espressif Systems & 1 \\
+U500 & RS-485 aislado 2500~VDC, 9600~bps & RSM3485PCT & Visom & 1 \\
+U501 & Conector microSD push-push & TF-CARD-9P & BXCONN & 1 \\
+X100 & Cristal 8,192~MHz, 20~ppm & 049SS2-8.192F12DZLAL & HCI & 1 \\
+\midrule
+\multicolumn{4}{r}{\textbf{Total}} & \textbf{148} \\
+\end{longtable}
+\end{landscape}
+\pagestyle{fancy}
+
+\noindent\textbf{Origen.} El archivo es
+\path{PCB/BOOM/Analizador_trifasico_IoT_pcb.xlsx}; los valores y part numbers no
+se normalizaron.
+
+\noindent\textbf{Observación sobre el archivo.} En la fila de C400 el part
+number del BOM no corresponde al componente: el nombre indica
+\texttt{HGC0805R5226K100NSLJ} (22~$\mu$F 10~V X5R) y la columna de fabricante
+repite el part number del cristal X100. En la tabla se usó el que figura en el
+nombre del componente. Conviene corregir el BOM antes de fabricar.
+
 \label{sec:referencias}
 
 \addcontentsline{toc}{section}{Referencias}
@@ -1285,6 +1601,16 @@ JDT Fuse.
 \textit{JFC2410-0200TS: fusible 2410, 200 mA, time-lag}.
 Ficha de producto LCSC, consultada en octubre de 2026.
 \url{https://www.lcsc.com/product-detail/C55058769.html}.
+
+\bibitem{pbati}
+Equipo del proyecto Analizador Trifásico IoT.
+\textit{PB-ATI-001: Presupuesto de potencia y verificación energética},
+Rev. 1.0, noviembre de 2026.
+
+\bibitem{stpm34}
+STMicroelectronics.
+\textit{EVALSTPM34: Dual-phase energy metering evaluation board with 2 current
+transformers based on the STPM34}, DB2285 Rev 2, abril de 2022.
 
 \bibitem{tps2553}
 Texas Instruments.

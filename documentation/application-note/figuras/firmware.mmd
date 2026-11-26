@@ -1,0 +1,7 @@
+﻿flowchart TD
+    A([Reset]) --> B["Arranque<br/>NVS · GPIO · watchdog<br/>SPI3 + RN8302B (configuración y calibración)<br/>SPI2: microSD + FGH100M · UART Modbus · SNTP"]
+    B --> C([Bucle de 1 s])
+    C --> D["Leer RN8302B · validar trama · acumular energía<br/>Modbus RTU · registro en SD · MQTT · watchdog"]
+    D --> E{{"¿V de línea < umbral?"}}
+    E -->|no| C
+    E -->|sí| F([LAST GASP: cerrar archivo · publicar])
