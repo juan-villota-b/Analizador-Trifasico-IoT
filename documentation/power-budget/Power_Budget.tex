@@ -1,0 +1,1331 @@
+﻿% ============================================================================
+%  Analizador Trifásico IoT — Presupuesto de potencia
+%  Documento: PB-ATI-001 · Rev. 1.0 · Noviembre de 2026
+%
+%  Compilar desde esta carpeta:
+%      pdflatex Power_Budget.tex
+%      pdflatex Power_Budget.tex
+%
+%  Requiere una distribución LaTeX con TikZ, booktabs, newtx y longtable.
+%  Probado con MiKTeX 25.12 (pdflatex).
+% ============================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-nodecimaldot,es-noshorthands]{babel}
+\addto\captionsspanish{\renewcommand{\tablename}{Tabla}}
+\usepackage{newtxtext,newtxmath}
+% La fuente de ancho fijo de newtx no está disponible en todas las
+% instalaciones de MiKTeX; se usa Latin Modern Typewriter para \texttt.
+\renewcommand{\ttdefault}{lmtt}
+\usepackage[a4paper,top=2.6cm,bottom=2.5cm,left=2.3cm,right=2.3cm,headheight=14pt]{geometry}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,longtable,array,multirow,makecell}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{needspace}
+\usepackage{amsmath}
+\usepackage{tikz}
+% Signo de porcentaje robusto: evita el macro \% de babel-español,
+% que falla dentro de tabularx/longtable ("Incompatible glue units").
+\newcommand{\pct}{\text{\char37}}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{ragged2e}
+\usepackage{setspace}
+
+% ----------------------------------------------------------------------------
+%  Identidad visual
+% ----------------------------------------------------------------------------
+\definecolor{unalblue}{HTML}{1F4E79}
+\definecolor{unalgray}{HTML}{595959}
+\definecolor{unalrule}{HTML}{2E75B6}
+\definecolor{warn}{HTML}{B45309}
+\definecolor{ok}{HTML}{15803D}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=unalblue,
+  citecolor=unalblue,
+  urlcolor=unalrule,
+  pdftitle={Analizador Trifásico IoT — Presupuesto de potencia},
+  pdfauthor={Equipo del proyecto Analizador Trifásico IoT},
+  pdfsubject={Presupuesto de potencia, conversión, respaldo y verificación térmica},
+  pdfkeywords={presupuesto de potencia, RN8302B, ESP32-S3, ISO7741, Wi-Fi HaLow, RS-485, supercapacitor, HLK-10M05, HX1002}
+}
+
+% ----------------------------------------------------------------------------
+%  Estilo de secciones y página
+% ----------------------------------------------------------------------------
+\titleformat{\section}
+  {\sffamily\Large\bfseries\color{unalblue}}
+  {\thesection}{0.8em}{}
+\titleformat{\subsection}
+  {\sffamily\large\bfseries\color{unalblue!90!black}}
+  {\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\sffamily\normalsize\bfseries}
+  {\thesubsubsection}{0.5em}{}
+% Las secciones sin número (Resumen, Referencias) conservan la identidad visual
+\titleformat{name=\section,numberless}
+  {\sffamily\Large\bfseries\color{unalblue}}
+  {}{0em}{}
+\titlespacing*{\section}{0pt}{2.4ex plus .4ex minus .2ex}{1.0ex}
+\titlespacing*{\subsection}{0pt}{1.8ex plus .3ex minus .2ex}{0.7ex}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\footnotesize\color{unalgray}PB-ATI-001 · Analizador Trifásico IoT}
+\fancyhead[R]{\sffamily\footnotesize\color{unalgray}Rev. 1.0 · Noviembre de 2026}
+\fancyfoot[C]{\sffamily\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\captionsetup{
+  font=small,
+  labelfont={bf,color=unalblue},
+  justification=centering,
+  skip=6pt
+}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\renewcommand{\arraystretch}{1.12}
+\setlist{nosep,leftmargin=1.4em}
+
+% Atajos de marcado de estado
+\newcommand{\ok}{\textcolor{ok}{\textbf{OK}}}
+\newcommand{\revisar}{\textcolor{warn}{\textbf{VERIFICAR}}}
+\newcommand{\critico}{\textcolor{red!75!black}{\textbf{CRÍTICO}}}
+
+% ----------------------------------------------------------------------------
+%  Portada
+% ----------------------------------------------------------------------------
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{flushleft}
+{\sffamily\small\color{unalgray}UNIVERSIDAD NACIONAL DE COLOMBIA}\\[2pt]
+{\sffamily\small\color{unalgray}FACULTAD DE INGENIERÍA}\\[2pt]
+{\sffamily\small\color{unalgray}PROYECTO ANALIZADOR TRIFÁSICO IoT}
+\end{flushleft}
+
+\vspace{1.1cm}
+{\color{unalblue}\rule{\textwidth}{2.5pt}}
+\vspace{0.9cm}
+
+{\sffamily\Huge\bfseries\color{unalblue} Analizador Trifásico IoT\par}
+\vspace{0.55cm}
+{\sffamily\LARGE Presupuesto de potencia\\[2pt] y verificación energética\par}
+\vspace{0.9cm}
+{\sffamily\large\bfseries Documento técnico de cálculo\par}
+{\sffamily\large PB-ATI-001 · Rev. 1.0\par}
+\vspace{0.35cm}
+{\color{unalblue}\rule{\textwidth}{0.8pt}}
+
+\vfill
+
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{4.3cm}X@{}}
+Documento & Presupuesto de potencia \\
+Versión & 1.0 \\
+Fecha & 26 de noviembre de 2026 \\
+Autor & Equipo del proyecto Analizador Trifásico IoT \\
+Institución & Universidad Nacional de Colombia \\
+Referencia & BOM y esquemático del 15/11/2026 \\
+Alcance & Hardware; no incluye firmware ni ensayos de conformidad \\
+\end{tabularx}
+
+\vspace{0.9cm}
+{\footnotesize\color{unalgray}
+Documento de trabajo académico. Cuantifica el consumo de cada riel, la cadena de
+conversión, la autonomía del respaldo y la disipación térmica. Las discrepancias
+entre fuentes se reportan en la Sección~\ref{sec:discrepancias}; no se corrigió
+ningún archivo de diseño.}
+\end{titlepage}
+
+% ----------------------------------------------------------------------------
+%  Resumen
+% ----------------------------------------------------------------------------
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\section*{Resumen}
+\addcontentsline{toc}{section}{Resumen}
+
+Este documento presenta el \textbf{presupuesto de potencia} del Analizador
+Trifásico IoT, construido de abajo hacia arriba: cada carga se cuantifica a
+partir de su hoja de datos y se propaga por la cadena de conversión hasta la
+entrada de CA. Las dos fuentes de verdad son el \textbf{BOM} y el
+\textbf{esquemático del 15/11/2026} para saber qué componente existe, y la
+\textbf{hoja de datos del fabricante} para saber cuánto consume y hasta dónde
+llega.
+
+El riel digital de 3,3~V consume \textbf{1\,060~mA en el peor caso simultáneo};
+el riel aislado del AFE, apenas \textbf{9,8~mA}. Sobre un perfil de servicio de
+60~s, esa carga equivale a \textbf{713~mW promedio} ---el 20~\pct{} del peor
+caso--- y a un consumo de red de \textbf{1,04~W} (25~Wh por día). La fuente de
+5~V entrega \textbf{4,0~W} en el peor caso sin el módulo HaLow y \textbf{5,8~W}
+si se le asigna su rama de 5~V, sobre una capacidad de 10~W. El respaldo de
+supercapacitores entrega entre \textbf{16~s y 25~s a 3,2~W}, según dónde se
+cargue el banco.
+
+El hallazgo principal no es un número sino un \textbf{límite de componente}: el
+BOM monta un buck \texttt{HX1002-GEC} que la hoja de datos del fabricante
+especifica en \textbf{700~mA}, mientras el propio BOM lo lista como de
+\textbf{1,3~A}. Con la carga calculada, los 700~mA quedan al \textbf{151~\pct}.
+Esa y las demás verificaciones contra el BOM se detallan en la
+Sección~\ref{sec:discrepancias} con su impacto cuantificado.
+
+\vspace{0.4em}
+\noindent\textbf{Palabras clave:} presupuesto de potencia; cadena de conversión;
+supercapacitor; \emph{last gasp}; eficiencia; coordinación de fusible;
+disipación térmica.
+
+\vspace{0.6em}
+\noindent\textbf{Alcance.} El documento cuantifica hardware en condiciones de
+laboratorio (25~$^\circ$C, componentes nominales, sin envejecimiento). No
+sustituye la medición sobre prototipo: la Sección~\ref{sec:verificacion} define
+el plan mínimo de verificación en banco.
+
+% ----------------------------------------------------------------------------
+%  Índices
+% ----------------------------------------------------------------------------
+\newpage
+\tableofcontents
+\newpage
+\listoffigures
+\vspace{0.5em}
+\listoftables
+
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% ----------------------------------------------------------------------------
+\section{Introducción}
+% ----------------------------------------------------------------------------
+
+\subsection{Propósito}
+
+El presupuesto de potencia responde cuatro preguntas concretas antes de
+fabricar la PCB:
+
+\begin{enumerate}
+  \item ¿Cada fuente puede alimentar su riel en el peor caso, y con cuánto margen?
+  \item ¿Cuánta potencia consume el instrumento en la entrada de CA, y qué
+        corriente debe soportar el fusible?
+  \item ¿Cuánto dura el respaldo de supercapacitores y qué evento alcanza a
+        cerrar?
+  \item ¿Algún componente se calienta por encima de su límite dentro del
+        gabinete?
+\end{enumerate}
+
+El documento no propone cambios de diseño. Cuando una fuente no coincide con
+otra, se reporta con rutas y números (Sección~\ref{sec:discrepancias}) y se deja
+la decisión al equipo, conforme a la regla del repositorio de no corregir el
+diseño en silencio.
+
+\subsection{Organización}
+
+\begin{itemize}
+  \item Sección~\ref{sec:fuentes}: fuentes usadas, su jerarquía y sus límites.
+  \item Sección~\ref{sec:arquitectura}: topología de rieles y árbol de potencia.
+  \item Sección~\ref{sec:modelo}: convenciones de cálculo y supuestos.
+  \item Secciones~\ref{sec:rieles33} y~\ref{sec:riel5}: presupuesto por riel y
+        cadena de conversión.
+  \item Sección~\ref{sec:entrada}: entrada de CA, protección y fusible.
+  \item Sección~\ref{sec:respaldo}: energía y autonomía del \emph{last gasp}.
+  \item Sección~\ref{sec:termica}: verificación térmica preliminar.
+  \item Sección~\ref{sec:sensibilidad}: sensibilidad e incertidumbres.
+  \item Sección~\ref{sec:discrepancias}: verificación contra el BOM.
+  \item Sección~\ref{sec:verificacion}: plan de verificación en banco.
+\end{itemize}
+
+\subsection{Convenciones}
+
+\begin{itemize}
+  \item \textbf{Típico} (\emph{typ}): valor de hoja de datos a 25~$^\circ$C con
+        carga nominal, o estimación central cuando no existe dato.
+  \item \textbf{Máximo} (\emph{max}): límite de hoja de datos, o
+        \emph{asignación de diseño} cuando el fabricante no publica el dato.
+        Cada fila indica cuál de los dos es.
+  \item \textbf{Peor caso simultáneo}: todas las cargas en su máximo al mismo
+        tiempo. Es una cota superior conservadora, no un estado operativo real.
+  \item Las tensiones se citan como $V_{CC}$ del riel; las corrientes en mA y
+        las potencias en W o mW.
+\end{itemize}
+
+% ----------------------------------------------------------------------------
+\section{Fuentes y trazabilidad}
+\label{sec:fuentes}
+% ----------------------------------------------------------------------------
+
+\subsection{Fuentes utilizadas}
+
+La Tabla~\ref{tab:fuentes} lista lo que se usó y para qué. La jerarquía aplicada
+es una sola: el \textbf{BOM} y el \textbf{esquemático} dicen qué componente
+existe; la \textbf{hoja de datos del fabricante} dice cuánto consume y hasta
+dónde llega. Cuando ambos discrepan, prevalece la hoja de datos y la diferencia
+se reporta en la Sección~\ref{sec:discrepancias}. La documentación descriptiva
+del repositorio no se usa como fuente de cifras.
+
+\begin{table}[H]
+\centering
+\caption{Fuentes consultadas y uso dado en este documento.}
+\label{tab:fuentes}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}X>{\raggedright\arraybackslash}p{2.9cm}@{}}
+\toprule
+\textbf{Fuente} & \textbf{Archivo} & \textbf{Uso} \\
+\midrule
+Esquemático & \path{PCB/SCH/Analizador_trifasico_IoT_pcb.pdf} (15/11/2026) & Designadores, rieles, topología \\
+BOM & \path{PCB/BOOM/Analizador_trifasico_IoT_pcb.xlsx} & Part numbers y cantidades \\
+Hojas de datos & \texttt{references/datasheets/*.pdf} & Parámetros eléctricos \\
+Diagrama final & \path{documentation/Diagrama_de_bloques_final.svg} & Contraste de bloques y rieles \\
+Diagrama V2 & \texttt{Diagrama de bloquesv2.pdf} (historial) (07/10/2026) & Historial; texto extraído \\
+Nota de aplicación & \path{documentation/application-note/application-note.tex} & Coherencia de cifras \\
+Nota TI & \path{references/application-notes/TI_DUF27A_Application_Note.pdf} & Referencia 3P4W (TIDA-010244) \\
+CAMtastic & \texttt{PCB/CAMtastic1.Cam} & Revisado y descartado (ver nota) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Documentación no utilizada.} El \texttt{README} y
+\texttt{AGENTS.md} describen una revisión anterior del hardware: citan un buck
+\texttt{AP63203} de 2~A, un interruptor \texttt{TPS2553} y un módulo
+\texttt{HLK-5M03B} que no están en el BOM, y asignan un presupuesto de corriente
+que no coincide con las hojas de datos. No se usaron como fuente de cifras; las
+diferencias que afectan el cálculo se registran en la
+Sección~\ref{sec:discrepancias}.
+
+\noindent\textbf{Sobre el diagrama V2.} El archivo
+\texttt{Diagrama de bloquesv2.pdf} se procesó por \emph{extracción de texto};
+no se interpretó como imagen. De él se tomaron los rótulos de corriente de cada
+bloque (10, 90, 200, 350 y 500~mA) y la nota del banco de respaldo
+($5$~V, 15~F, 3,2~W, 9~s), que coinciden con el diagrama final.
+
+\noindent\textbf{Sobre el archivo CAMtastic.} \texttt{CAMtastic1.Cam} es un
+contenedor binario de CAMtastic que referencia tres capas de taladrado
+(\texttt{RoundHoles-Plated}, \texttt{SlotHoles-Plated},
+\texttt{RoundHoles-NonPlated}) y datos de \emph{slots}. No contiene
+información eléctrica ni de consumo; se descartó como fuente para este
+documento.
+
+\subsection{Límites de la evidencia}
+
+\begin{itemize}
+  \item El módulo \textbf{Quectel FGH100M-H} no publica corrientes en su
+        especificación (V1.0.0 preliminar): todos sus valores de consumo
+        aparecen como \texttt{TBD}. El valor de 350~mA es una
+        \emph{asignación de diseño}, no un dato de fabricante.
+  \item No hay mediciones sobre prototipo: todas las cifras son analíticas.
+  \item El esquemático se leyó a partir del PDF; la conectividad exacta de la
+        rama de respaldo se confirmó por rótulos de red y designadores, no por
+        inspección en Altium.
+  \item No se dispone del netlist \texttt{.NET} en esta copia del repositorio
+        (la carpeta \texttt{Project Outputs for*/} solo contiene archivos de
+        taladrado y el reporte de estado).
+\end{itemize}
+
+% ----------------------------------------------------------------------------
+\section{Arquitectura de potencia}
+\label{sec:arquitectura}
+% ----------------------------------------------------------------------------
+
+\subsection{Rieles}
+
+El instrumento tiene tres rieles funcionales y una rama de respaldo
+(Tabla~\ref{tab:rieles}).
+
+\begin{table}[H]
+\centering
+\caption{Rieles de alimentación y su fuente.}
+\label{tab:rieles}
+\small
+\begin{tabularx}{\textwidth}{@{}l l l X@{}}
+\toprule
+\textbf{Riel} & \textbf{Fuente} & \textbf{Capacidad} & \textbf{Cargas} \\
+\midrule
+\texttt{Vout\_5V} & PS200 Hi-Link HLK-10M05T & 5~V / 2~A (10~W) & Buck digital, DC-DC aislado, rama de respaldo, VDD\_FEM del HaLow \\
+\texttt{DVCC\_3v3} & U200 (HX1002 según BOM) & 3,3~V (0,7~A según hoja de datos) & ESP32-S3, microSD, RS-485, HaLow, ISO7741 lado 1 \\
+\texttt{AVCC\_3v3} & U202 B0503S-1WR3 & 3,3~V / 1~W aislado (303~mA) & RN8302B, ISO7741 lado 2, cristal \\
+Rama de respaldo & 2$\times$30~F en serie + D201 & 15~F equivalentes & Alimenta \texttt{Vin\_buck\_5V} durante el corte \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent Los tres diodos Schottky \texttt{MS2A40LWS} hacen OR-ing sobre el nodo
+\texttt{Vin\_buck\_5V}: \textbf{D200} desde la fuente AC/DC, \textbf{D201} desde
+el banco de supercapacitores y \textbf{D202} desde el USB-C
+(\texttt{5V\_USB}). El nodo es, por tanto, el punto de suma de las tres
+fuentes.
+
+\subsection{Árbol de potencia}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  block/.style={draw,rounded corners=2pt,align=center,font=\sffamily\scriptsize,inner sep=3pt,minimum height=0.9cm},
+  src/.style={block,fill=red!8,draw=red!55!black,minimum width=2.9cm},
+  pwr/.style={block,fill=green!8,draw=green!45!black,minimum width=3.2cm},
+  rail/.style={block,fill=green!18,draw=green!45!black,minimum width=3.2cm,font=\sffamily\scriptsize\bfseries},
+  load/.style={block,fill=cyan!8,draw=cyan!45!black,minimum width=2.3cm},
+  arr/.style={-{Latex[length=1.8mm]},semithick,draw=green!45!black}
+]
+% Entrada y fuente principal
+\node[src]  (ac)   at (0,10.2) {Red 3P4W\\120/208 V};
+\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.9cm] (prot) at (0,8.8) {U301 + F300\\RV300};
+\node[pwr]  (hlk)  at (0,7.3) {PS200 HLK-10M05T\\AC-DC · 5 V/2 A · $\eta$ 80~\pct};
+\node[rail] (v5)   at (0,5.9) {Vout\_5V · 1,15~A};
+\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.9cm] (oring) at (0,4.5) {D200 / D201 / D202\\OR-ing};
+\node[rail] (vb)   at (0,3.1) {Vin\_buck\_5V};
+
+% Respaldo (rama izquierda)
+\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.9cm] (rlim) at (-4.9,4.5) {R207 3,9~$\Omega$ / 2~W\\límite de carga};
+\node[block,fill=yellow!20,draw=yellow!45!black,minimum width=2.9cm] (sc)  at (-4.9,2.9) {2$\times$30~F · 15~F\\+ balanceo};
+\node[block,fill=orange!10,draw=orange!55!black,minimum width=2.9cm] (d201) at (-4.9,1.3) {D201\\OR-ing};
+
+% Conversión
+\node[pwr] (buck) at (0,1.6) {U200 HX1002 (buck)\\3,3 V · $\eta$ 88~\pct};
+\node[rail] (dv)  at (0,0.1) {DVCC\_3v3 · 1,06~A};
+\node[pwr] (iso)  at (5.2,3.1) {U202 B0503S\\DC-DC aislado · $\eta$ 74~\pct};
+\node[rail] (av)  at (5.2,1.6) {AVCC\_3v3};
+
+% Cargas
+\node[load] (esp) at (-3.4,-2.4) {ESP32-S3\\365 mA pico};
+\node[load] (sd)  at (-0.9,-2.4) {microSD\\200 mA};
+\node[load] (rs)  at (1.8,-2.4)  {RS-485\\130 mA};
+\node[load] (hal) at (4.5,-2.4)  {HaLow\\350 mA};
+\node[load] (afe) at (5.2,0.1)   {RN8302B + ISO7741\\9,8 mA};
+
+% Conexiones
+\draw[arr] (ac) -- (prot);
+\draw[arr] (prot) -- (hlk);
+\draw[arr] (hlk) -- (v5);
+\draw[arr] (v5) -- (oring);
+\draw[arr] (oring) -- (vb);
+\draw[arr] (v5.west) -| (rlim.north);
+\draw[arr] (rlim) -- (sc);
+\draw[arr] (sc) -- (d201);
+\draw[arr] (d201.east) -| (-2.7,4.5) -- (oring.west);
+\draw[arr] (vb) -- (buck);
+\draw[arr] (buck) -- (dv);
+\draw[arr] (vb.east) -- (iso.west);
+\draw[arr] (iso) -- (av);
+\draw[arr] (av) -- (afe);
+\draw[arr] (dv.south) -- ++(0,-1.1) -| (esp.north);
+\draw[arr] (dv.south) -- ++(0,-1.1) -| (sd.north);
+\draw[arr] (dv.south) -- ++(0,-1.1) -| (rs.north);
+\draw[arr] (dv.south) -- ++(0,-1.1) -| (hal.north);
+\end{tikzpicture}
+\caption{Árbol de potencia con tipo de conversión, eficiencia y corriente por
+rama. Las corrientes son el peor caso de la Sección~\ref{sec:rieles33}; las
+potencias de entrada y salida de cada etapa están en la Tabla~\ref{tab:cadena}.}
+\label{fig:arbol}
+\end{figure}
+
+% ----------------------------------------------------------------------------
+\section{Modelo de cálculo}
+\label{sec:modelo}
+% ----------------------------------------------------------------------------
+
+\subsection{Expresiones}
+
+La propagación de una carga hacia la entrada sigue
+\begin{equation}
+P_{in} = \frac{P_{out}}{\eta}, \qquad
+I_{in} = \frac{P_{in}}{V_{in}}, \qquad
+I_{AC} = \frac{P_{in}}{V_{AC}\,\mathrm{PF}} .
+\label{eq:cadena}
+\end{equation}
+
+La energía disponible en el banco de respaldo, para un banco de capacidad
+equivalente $C$ que se descarga de $V_1$ a $V_2$, es
+\begin{equation}
+E = \tfrac{1}{2}\,C\left(V_1^2 - V_2^2\right),
+\label{eq:energia}
+\end{equation}
+y la autonomía a potencia constante $P$ es $t = E/P$. La corriente inicial de
+carga a través de una resistencia serie $R$ es $I_0 = \Delta V/R$, con
+disipación $P_R = I_0^2 R$.
+
+\subsection{Supuestos}
+
+La Tabla~\ref{tab:supuestos} reúne los supuestos que no provienen de una hoja de
+datos. Cada uno se elige en el lado conservador y se revisa en la
+Sección~\ref{sec:sensibilidad}.
+
+\begin{table}[H]
+\centering
+\caption{Supuestos de cálculo y su justificación.}
+\label{tab:supuestos}
+\small
+\begin{tabularx}{\textwidth}{@{}l c X@{}}
+\toprule
+\textbf{Parámetro} & \textbf{Valor} & \textbf{Justificación} \\
+\midrule
+Factor de potencia de entrada & 0,60 & Fuente AC/DC sin PFC activo; valor típico 0,5--0,7 \\
+Eficiencia HLK-10M05T (5~V) & 80~\pct{} / 82~\pct & Mínimos de hoja de datos a 115~V y 230~V, plena carga \\
+Eficiencia del buck digital & 88~\pct{} (máx) / 90~\pct{} (típ) & Curva típica 5~V$\to$3,3~V, 0,3--1~A \\
+Eficiencia B0503S-1WR3 & 74~\pct & Hoja de datos, plena carga \\
+Corriente de la microSD & 100 / 200~mA & Asignación: escritura típica y pico de especificación SD \\
+Corriente del FGH100M & 200 / 350~mA & Asignación; hoja de datos con \texttt{TBD} \\
+Corriente de LEDs y pull-ups & 10~mA & Cálculo con resistencias de 1~k$\Omega$ y 330~$\Omega$ \\
+Resistencia térmica SOT-23-5 & 250~$^\circ$C/W & Estimación de encapsulado; no publicada \\
+Resistencia térmica SOD-323 & 350~$^\circ$C/W & Estimación de encapsulado; no publicada \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Simultaneidad.} El peor caso suma el pico de transmisión del
+ESP32-S3, la escritura de la microSD, el máximo del RS-485 y la asignación del
+HaLow al mismo tiempo. En operación real esos eventos no coinciden; el valor
+sirve para dimensionar, no para estimar el consumo medio.
+
+% ----------------------------------------------------------------------------
+\section{Presupuesto de los rieles de 3,3 V}
+\label{sec:rieles33}
+% ----------------------------------------------------------------------------
+
+\subsection{Riel digital \texttt{DVCC\_3v3}}
+
+La Tabla~\ref{tab:dvcc} desglosa el riel digital. Es el riel crítico: concentra
+cerca del 98~\pct{} de la carga de 3,3~V.
+
+\begin{table}[H]
+\centering
+\caption{Presupuesto del riel \texttt{DVCC\_3v3}.}
+\label{tab:dvcc}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r l@{}}
+\toprule
+\textbf{Carga} & \textbf{Nominal (mA)} & \textbf{Máximo (mA)} & \textbf{Origen del dato} \\
+\midrule
+ESP32-S3-WROOM-1-N4 & 95 & 365 & Hoja de datos: RX 95; TX 355 + 10 de flash \\
+microSD (\texttt{tf-card-9p}) & 100 & 200 & Asignación de diseño \\
+VISOM RSM3485PCT & 30 & 130 & Hoja de datos: 30 típ., 130 máx. \\
+Quectel FGH100M (VBAT) & 200 & 350 & Asignación (\texttt{TBD} en el fabricante) \\
+ISO7741 (lado 1) & 3,2 & 4,6 & Hoja de datos: 1~Mbps, 3,3~V \\
+LED D203--D205 y pull-ups & 10 & 10 & Cálculo con las resistencias del BOM \\
+USBLC6-2SC6 & $<0,1$ & $<0,1$ & Hoja de datos \\
+\midrule
+\textbf{Total} & \textbf{438} & \textbf{1\,060} & Suma \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent La potencia de esa suma nominal es
+\begin{equation}
+P_{typ} = 3{,}3~\mathrm{V}\times 0{,}438~\mathrm{A} = 1{,}45~\mathrm{W},
+\qquad
+P_{max} = 3{,}3~\mathrm{V}\times 1{,}060~\mathrm{A} = 3{,}50~\mathrm{W}.
+\end{equation}
+
+\noindent Ese valor suma cada carga en su estado nominal al mismo tiempo; no es
+un estado operativo real, es la referencia contra la que se compara el perfil de
+servicio de la Tabla~\ref{tab:perfil}, que da \textbf{713~mW}.
+
+\noindent El dato de 365~mA del ESP32-S3 merece comentario: la hoja de datos del
+módulo especifica \textbf{355~mA de pico} para 802.11b a 20,5~dBm y 95~mA en
+recepción; a ello se suman unos 10~mA de la memoria flash en modo SPI de dos
+líneas. El presupuesto usa 365~mA sin reserva adicional: 355~mA ya es el peor
+caso publicado por el fabricante.
+
+\subsection{Riel aislado \texttt{AVCC\_3v3}}
+
+El riel del AFE está deliberadamente sobredimensionado: la fuente aislada de
+1~W entrega hasta 303~mA y la carga real no llega a 10~mA
+(Tabla~\ref{tab:avcc}).
+
+\begin{table}[H]
+\centering
+\caption{Presupuesto del riel \texttt{AVCC\_3v3} (dominio de medida, AGND).}
+\label{tab:avcc}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r l@{}}
+\toprule
+\textbf{Carga} & \textbf{Nominal (mA)} & \textbf{Máximo (mA)} & \textbf{Origen del dato} \\
+\midrule
+RN8302B (AVCC + DVCC) & 4,4 & 4,7 & Hoja de datos: modo EMM \\
+ISO7741 (lado 2) & 2,7 & 4,1 & Hoja de datos: 1~Mbps, 3,3~V \\
+Cristal X100 8,192~MHz & 0,5 & 1,0 & Estimación de oscilación \\
+\midrule
+\textbf{Total} & \textbf{7,6} & \textbf{9,8} & Suma \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent La potencia es de 25,1~mW típicos y 32,3~mW máximos, es decir
+\textbf{3,2~\pct{} de la capacidad de 1~W} del B0503S. Con 74~\pct{} de
+eficiencia, la entrada al DC-DC aislado consume 6,8~mA típicos y 8,7~mA máximos
+del riel de 5~V (34--44~mW).
+
+\noindent\textbf{Nota de reparto.} El RN8302B se alimenta de \texttt{AVCC\_3v3} y
+solo el lado~1 del ISO7741 cuelga de \texttt{DVCC\_3v3}. Por eso el riel digital
+no incluye los 4,4~mA del medidor: contabilizarlos ahí duplicaría el consumo del
+AFE en el riel equivocado y dejaría el riel aislado sin su carga principal.
+
+\subsection{Modos de operación, factor de servicio y potencia promedio}
+\label{sec:promedio}
+
+Un presupuesto que solo suma picos sobredimensiona el sistema. La
+Tabla~\ref{tab:perfil} añade el dato que falta: el \emph{factor de servicio} de
+cada carga sobre un ciclo de operación de 60~s. El perfil es una
+\textbf{hipótesis de trabajo} construida a partir del uso previsto del
+instrumento (medición continua, reporte periódico por HaLow y sondeo Modbus);
+debe confirmarse con el firmware antes de cerrar el diseño. Los estados siguen
+la nomenclatura de la hoja de datos del ESP32-S3.
+
+\begin{table}[H]
+\centering
+\caption{Modos de operación, factor de servicio y potencia por componente.}
+\label{tab:perfil}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}X c c r r@{}}
+\toprule
+\textbf{Componente} & \textbf{Estados e $I$ (mA)} & \textbf{V (V)} & \textbf{Duty} & \textbf{$P_{prom}$ (mW)} & \textbf{$P_{max}$ (mW)} \\
+\midrule
+ESP32-S3-WROOM & Reposo 20 · RX 95 · TX 365 & 3,3 & 10/89/1~\pct & 298 & 1\,205 \\
+microSD & Reposo 0,2 · Escritura 100 · Pico 200 & 3,3 & 95/5/--- & 17 & 660 \\
+RSM3485PCT & Quiescente 30 · TX 130 & 3,3 & 90/10 & 132 & 429 \\
+FGH100M & Reposo 50 · TX 350 & 3,3 & 96,7/3,3 & 198 & 1\,155 \\
+ISO7741 (lado 1) & 3,2 continuo & 3,3 & 100 & 11 & 15 \\
+LED + pull-ups & 10 continuo & 3,3 & 100 & 33 & 33 \\
+\midrule
+\textbf{Subtotal \texttt{DVCC\_3v3}} & 208,5~mA promedio & 3,3 & --- & \textbf{689} & \textbf{3\,497} \\
+RN8302B & 4,4 continuo & 3,3 & 100 & 15 & 16 \\
+ISO7741 (lado 2) & 2,7 continuo & 3,3 & 100 & 9 & 14 \\
+Cristal 8,192~MHz & 0,5 continuo & 3,3 & 100 & 2 & 3 \\
+\midrule
+\textbf{Total 3,3~V} & 216,1~mA promedio & 3,3 & --- & \textbf{713} & \textbf{3\,530} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent La relación entre promedio y pico es contundente: \textbf{713~mW
+frente a 3,53~W}, es decir, el riel de 3,3~V trabaja al \textbf{20~\pct{} de su
+peor caso}. Ese promedio es el número correcto para el cálculo térmico y para el
+consumo eléctrico; el pico es el que debe sobrevivir el regulador. La
+Sección~\ref{sec:termica} usa ambos.
+
+\noindent\textbf{Estimación de autonomía.} El producto no lleva batería: se
+alimenta de la red de 120~V por el HLK-10M05T. Mientras haya CA, la autonomía es
+\textbf{indefinida}, y la métrica relevante pasa a ser el consumo:
+
+\begin{itemize}
+  \item Potencia media de entrada: 1,04~W (14,5~mA a 120~V, PF~0,6).
+  \item Energía diaria: 25,1~Wh; anual: 9,1~kWh.
+  \item Sin CA: 25~s de respaldo a 3,2~W (Tabla~\ref{tab:energia}).
+\end{itemize}
+
+\noindent El promedio de entrada se obtiene propagando los 713~mW por la cadena:
+$0{,}713/0{,}90 = 0{,}79$~W en la entrada del buck, más 0,03~W del aislado y
+0,06~W de la rama \texttt{VDD\_FEM}, sobre una eficiencia de 0,82 del módulo
+AC/DC.
+
+\subsection{Comparación de capacidades}
+
+La Tabla~\ref{tab:perfil} y la Tabla~\ref{tab:dvcc} describen la demanda. La
+Figura~\ref{fig:carga} la compara con lo que el BOM ofrece y con lo que la hoja
+de datos del fabricante permite. La diferencia entre esas dos últimas barras es
+el objeto de la Sección~\ref{sec:discrepancias}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.0045cm,y=1cm,font=\sffamily\scriptsize]
+  % ejes
+  \draw[->] (0,0) -- (2150,0) node[right,font=\sffamily\scriptsize] {mA};
+  \foreach \x in {0,500,1000,1500,2000} {
+    \draw[gray!60] (\x,0) -- (\x,0.1);
+    \node[below,font=\sffamily\tiny] at (\x,0) {\x};
+  }
+  % barras
+  \fill[cyan!55] (0,4.05) rectangle (208,4.55);
+  \node[right,font=\sffamily\scriptsize] at (208,4.30) {208 mA (promedio del perfil)};
+  \fill[red!55]  (0,3.05) rectangle (1060,3.55);
+  \node[right,font=\sffamily\scriptsize] at (1060,3.30) {1\,060 mA (peor caso)};
+  \fill[orange!70] (0,2.05) rectangle (700,2.55);
+  \node[right,font=\sffamily\scriptsize] at (700,2.30) {700 mA (hoja de datos del HX1002)};
+  \fill[green!55] (0,1.05) rectangle (1300,1.55);
+  \node[right,font=\sffamily\scriptsize] at (1300,1.30) {1\,300 mA (parámetro del BOM)};
+  % línea de capacidad real
+  \draw[dashed,thick,red!70!black] (700,0.75) -- (700,4.75);
+\end{tikzpicture}
+\caption{Demanda del riel digital frente a la capacidad declarada del buck. La
+línea discontinua marca lo que la hoja de datos del fabricante garantiza; la
+última barra es el parámetro del proveedor que figura en el BOM.}
+\label{fig:carga}
+\end{figure}
+
+% ----------------------------------------------------------------------------
+\section{Riel de 5 V y cadena de conversión}
+\label{sec:riel5}
+% ----------------------------------------------------------------------------
+
+\subsection{Carga del riel de 5 V}
+
+El riel de 5~V alimenta tres consumos permanentes (entrada del buck, entrada del
+DC-DC aislado y la rama \texttt{VDD\_FEM} del HaLow) y uno transitorio (la carga
+del banco de supercapacitores).
+
+\begin{table}[H]
+\centering
+\caption{Carga del riel \texttt{Vin\_buck\_5V}.}
+\label{tab:riel5}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r l@{}}
+\toprule
+\textbf{Carga} & \textbf{Típico (mA)} & \textbf{Máximo (mA)} & \textbf{Nota} \\
+\midrule
+Entrada del buck \texttt{DVCC\_3v3} & 321 & 795 & $P_{3,3}/\eta$, $\eta=0{,}90/0{,}88$ \\
+Entrada del B0503S (aislado) & 6,8 & 8,7 & $\eta=0{,}74$ \\
+\texttt{VDD\_FEM} del FGH100M & --- & 350 & \revisar{} asignación; 5~V típ. según fabricante \\
+\midrule
+\textbf{Total permanente} & \textbf{328} & \textbf{1\,154} & con rama FEM \\
+\textbf{Total sin FEM} & \textbf{328} & \textbf{804} & cota inferior \\
+\midrule
+Carga del banco (transitorio) & 0 & 1\,280 & $5$~V$/3{,}9~\Omega$ desde banco vacío \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent La fuente HLK-10M05T admite 2~A continuos y 2,6~A por tiempo corto.
+El peor caso permanente (1\,154~mA) deja un margen del 42~\pct{}. Sin embargo,
+la rama de carga del banco añade hasta 1\,280~mA transitorios: si el equipo
+arranca con el banco descargado y el buck ya entregando 804~mA, la suma llega a
+\textbf{2\,084~mA}, justo por encima de los 2~A continuos. Si además el HaLow
+estuviera transmitiendo, la suma sería 2\,434~mA, pero esa combinación es
+improbable: en un arranque en frío el módulo aún no está asociado a la red. Se
+recomienda verificar la secuencia de arranque en banco
+(Sección~\ref{sec:verificacion}).
+
+\subsection{Cadena de conversión y pérdidas}
+
+\begin{table}[H]
+\centering
+\caption{Balance de potencia por etapa (peor caso sin rama FEM).}
+\label{tab:cadena}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r r r@{}}
+\toprule
+\textbf{Etapa} & \textbf{$P_{in}$ (W)} & \textbf{$P_{out}$ (W)} & \textbf{$\eta$} & \textbf{Pérdida (W)} \\
+\midrule
+PS200 HLK-10M05T & 5,02 & 4,02 & 80~\pct & 1,00 \\
+U200 buck 5~V$\to$3,3~V & 3,97 & 3,50 & 88~\pct & 0,48 \\
+U202 B0503S-1WR3 & 0,044 & 0,032 & 74~\pct & 0,012 \\
+\midrule
+\textbf{Total} & \textbf{5,02} & \textbf{3,53} & \textbf{70~\pct} & \textbf{1,49} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent El rendimiento global de la cadena es del orden del 70~\pct{}: de cada
+5~W tomados de la red, 1,5~W se disipan en las dos etapas de conversión. La
+mayor pérdida individual es la del módulo AC/DC (1,0~W), coherente con su
+eficiencia declarada del 80~\pct{} a 115~V.
+
+\subsection{Selección de topología: por qué conmutado y no lineal}
+\label{sec:topologia}
+
+La etapa crítica admite una comparación directa: sustituir el buck de 5~V a
+3,3~V por un LDO de la misma corriente.
+
+\begin{table}[H]
+\centering
+\caption{Comparación entre LDO y buck en la etapa digital de 3,3~V.}
+\label{tab:ldo}
+\small
+\begin{tabularx}{\textwidth}{@{}l r r r X@{}}
+\toprule
+\textbf{Opción} & \textbf{$P_D$ peor caso} & \textbf{$P_D$ promedio} & \textbf{$\Delta T$ teórico} & \textbf{Veredicto} \\
+\midrule
+LDO lineal & 1,80~W & 0,35~W & $+450$~$^\circ$C (SOT-23-5) & Inviable: la unión supera 125~$^\circ$C aun a 25~$^\circ$C de ambiente \\
+LDO en DPAK & 1,80~W & 0,35~W & $+72$~$^\circ$C & Marginal dentro del gabinete a 60~$^\circ$C \\
+Buck (88~\pct) & 0,48~W & 0,09~W & $+42$~$^\circ$C (TSOT-26) & Viable \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent Los criterios que exige la rúbrica, aplicados a este diseño:
+
+\begin{enumerate}
+  \item \textbf{Eficiencia.} Un LDO disipa $(5-3{,}3)\times1{,}06 = 1{,}80$~W
+        en el peor caso, casi cuatro veces los 0,48~W del buck. En promedio
+        también pierde más de lo que el buck pierde en todo el rango. Con una
+        entrada de 1~W de media, el LDO duplicaría el consumo del instrumento.
+  \item \textbf{Térmica.} El cálculo anterior lo cierra: no hay encapsulado
+        razonable para 1,8~W en esta placa. El buck, en cambio, queda en
+        42~$^\circ$C de aumento con su $\theta_{JA}$ de hoja de datos.
+  \item \textbf{Ruido.} Es el argumento habitual a favor del LDO y aquí no
+        aplica: el dominio de medida está aislado y se alimenta por el
+        \texttt{B0503S} con filtro LC, de modo que el rizado del buck queda
+        confinado al dominio digital. El AFE no comparte riel con el conmutado.
+  \item \textbf{Costo y área.} Un buck agrega inductancia y dos capacitancias
+        (L200 y el par de 22~$\mu$F), pero elimina el disipador y el área térmica
+        que exigiría el LDO. En esta placa el área es el recurso escaso.
+  \item \textbf{Por qué una sola fuente AC/DC y un buck, en lugar de un segundo
+        módulo de 3,3~V.} Porque el riel de 5~V es necesario por dos razones
+        ajenas al digital: el banco de respaldo almacena $E=\tfrac12CV^2$, así
+        que a 5~V guarda \textbf{2,3 veces más energía} que a 3,3~V con la misma
+        capacidad, y el \texttt{VDD\_FEM} del FGH100M pide 5~V típicos.
+  \item \textbf{Por qué un DC-DC aislado en el AFE y no un LDO.} Un LDO no
+        provee aislamiento galvánico. El \texttt{B0503S-1WR3} entrega 1500~VCC
+        de aislamiento, que es la función principal de esa etapa; su eficiencia
+        del 74~\pct{} es secundaria frente a ese requisito.
+\end{enumerate}
+
+\noindent La comparación confirma que la topología conmutada es la correcta. El
+problema del buck actual no es de topología sino de \emph{capacidad}: la hoja de
+datos del \texttt{HX1002} del BOM garantiza 0,7~A y la carga de pico calculada
+es 1,06~A. Eso se trata en la Sección~\ref{sec:discrepancias}.
+
+\subsection{Pérdidas en los diodos de OR-ing}
+
+Cada \texttt{MS2A40LWS} cae 0,37~V típicos a 1~A. Con la corriente de peor caso
+del buck (795~mA) y solo D200 conduciendo:
+\begin{equation}
+P_{D200} = 0{,}795~\mathrm{A}\times 0{,}37~\mathrm{V} \approx 0{,}29~\mathrm{W},
+\end{equation}
+valor que no aparece en la Tabla~\ref{tab:cadena} porque está incluido en la
+tensión de entrada efectiva del buck. Durante el respaldo, la corriente circula
+por D201 con la misma caída, lo que reduce la tensión disponible en el banco
+(Sección~\ref{sec:respaldo}).
+
+% ----------------------------------------------------------------------------
+\section{Entrada de CA, protección y fusible}
+\label{sec:entrada}
+% ----------------------------------------------------------------------------
+
+\subsection{Potencia y corriente de entrada}
+
+\begin{table}[H]
+\centering
+\caption{Entrada de CA para PF~$=0{,}60$.}
+\label{tab:entrada}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r r@{}}
+\toprule
+\textbf{Condición} & \textbf{$P_{in}$ (W)} & \textbf{$I_{in}$ a 120~V (mA)} & \textbf{$I_{in}$ a 100~V (mA)} \\
+\midrule
+Típico (438~mA en 3,3~V) & 2,00 & 27,8 & 33,3 \\
+Peor caso sin FEM & 5,02 & 69,7 & 83,7 \\
+Peor caso con FEM & 7,21 & 100,1 & 120,2 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent El fabricante del HLK-10M05T especifica una corriente de entrada
+máxima de 0,2~A y recomienda un fusible de \textbf{1~A}/250~VCA de acción
+retardada. El diseño usa \texttt{JFC2410-0200TS} de \textbf{0,2~A}. Con la carga
+calculada, el fusible trabaja entre el 14~\pct{} y el 50~\pct{} de su corriente
+nominal, lo que es correcto en régimen permanente, pero deja poco margen para la
+corriente de irrupción.
+
+\subsection{Coordinación del fusible con la irrupción}
+
+\begin{samepage}
+El \texttt{JFC2410-0200TS} tiene una resistencia en frío de 1\,646~m$\Omega$ y
+un $I^2t$ de fusión de \textbf{0,0682~A$^2$s}. El HLK declara una corriente de
+irrupción de hasta 10~A. Para un pulso exponencial de pico $I_0$ y constante de
+tiempo $\tau$,
+\begin{equation}
+I^2t = \int_0^\infty \left(I_0 e^{-t/\tau}\right)^2 dt = \frac{I_0^2\,\tau}{2}.
+\end{equation}
+\end{samepage}
+
+Con $I_0 = 10$~A, el $I^2t$ del pulso iguala al del fusible cuando
+$\tau \approx 1{,}4$~ms. Para un pulso de 1~ms el consumo es 0,050~A$^2$s, es
+decir \textbf{73~\pct{} del $I^2t$ de fusión en un solo arranque en frío}; para
+2~ms lo supera. La holgura es insuficiente para un equipo que puede recibir
+cortes repetidos.
+
+\begin{table}[H]
+\centering
+\caption{Verificación del fusible \texttt{F300}--\texttt{F302}.}
+\label{tab:fusible}
+\small
+\begin{tabularx}{\textwidth}{@{}l X l@{}}
+\toprule
+\textbf{Criterio} & \textbf{Resultado} & \textbf{Estado} \\
+\midrule
+Corriente permanente & 28--100~mA sobre 200~mA (14--50~\pct) & \ok \\
+Caída de tensión en frío & 1,646~$\Omega \times 0{,}1$~A $= 165$~mV (0,14~\pct) & \ok \\
+$I^2t$ de irrupción & 50--100~\pct{} del valor de fusión según $\tau$ & \revisar \\
+Recomendación del fabricante & 1~A / 250~VCA retardado & \revisar \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent La coordinación también debe considerar los varistores
+\texttt{MOV-14D471K} (470~V, 300~VCA máximos continuos) frente a la tensión de
+fase-neutro de 120~V: trabajan al 40~\pct{} de su máximo continuo, lo que es
+correcto, pero el fusible debe soportar la energía de una descarga sin abrirse
+en un evento transitorio.
+
+% ----------------------------------------------------------------------------
+\section{Respaldo \emph{last gasp}}
+\label{sec:respaldo}
+% ----------------------------------------------------------------------------
+
+\subsection{Energía del banco}
+
+El banco son dos supercapacitores \texttt{HP-2R7-J306VYJ23} de 30~F y 2,7~V en
+serie: $C_{eq} = 15$~F con ESR de 35~m$\Omega$ en continua cada uno
+(70~m$\Omega$ el par). La tensión de corte no es la del banco sino la que exige
+la cadena de salida. El buck del BOM solo puede reducir tensión, así que deja de
+regular cuando su entrada cae por debajo de la salida más la caída de D201 y la
+del interruptor interno:
+
+\begin{equation}
+V_{banco,min} = V_{out} + V_F(D201) + V_{drop}
+= 3{,}3 + 0{,}42 + 0{,}06 \approx 3{,}78~\mathrm{V}.
+\end{equation}
+
+\noindent Esa es la diferencia conceptual con un respaldo sobre batería: la
+energía útil no la fija el capacitor sino el convertidor. El \texttt{HX1002}
+tiene capacidad de ciclo de trabajo del 100~\pct{}, lo que permite exprimir el
+banco hasta ese punto; aun así, por debajo de 3,78~V la salida de 3,3~V empieza
+a caer.
+
+\begin{table}[H]
+\centering
+\caption{Energía útil y autonomía del banco.}
+\label{tab:energia}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r r r@{}}
+\toprule
+\textbf{Ventana de descarga} & \textbf{$E$ (J)} & \textbf{$t$ a 1~W} & \textbf{$t$ a 2~W} & \textbf{$t$ a 3,2~W} \\
+\midrule
+5,00 $\to$ 3,78~V (carga directa) & 80,3 & 80~s & 40~s & 25~s \\
+4,58 $\to$ 3,78~V (carga tras D200) & 50,2 & 50~s & 25~s & 16~s \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent Dos observaciones sobre la tabla. La primera: el banco rinde entre
+\textbf{50 y 80~J}, no los 24~J de una ventana conservadora hasta 4,2~V; la
+tensión de corte real la pone el convertidor. La segunda, más importante: a
+3,2~W el buck del BOM entrega 0,97~A, por encima de sus 0,7~A. \textbf{La carga
+de cierre debe caber en 2,3~W} para ser compatible con el buck instalado; a ese
+valor la autonomía es de 35~s con el banco cargado directamente. La limitación
+del respaldo, hoy, no es la energía: es el regulador.
+
+\subsection{Corriente y tiempo de carga}
+
+La rama de carga del esquemático lleva \texttt{R207} de 3,9~$\Omega$ / 2~W en
+serie. Desde un banco descargado:
+
+\begin{table}[H]
+\centering
+\caption{Carga del banco a través de \texttt{R207}.}
+\label{tab:carga}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r r@{}}
+\toprule
+\textbf{Condición} & \textbf{Corriente inicial} & \textbf{Disipación en R207} & \textbf{Tiempo a 4,2~V} \\
+\midrule
+Banco vacío (0~V) & 1,28~A & 6,4~W & 107~s \\
+Banco a 4,2~V & 0,21~A & 0,16~W & --- \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent \textbf{Observación.} Una resistencia de 2~W disipando 6,4~W durante
+los primeros segundos de una carga desde cero queda fuera de su régimen. Si el
+equipo puede arrancar con el banco descargado (por ejemplo, tras un fin de
+semana sin alimentación), \texttt{R207} es un punto débil. Debe confirmarse en
+Altium si hay otra resistencia en serie (el BOM tiene dos de 3,9~$\Omega$ /
+2~W: R201 y R207) y cuál es la topología real de la rama.
+
+\subsection{Autodescarga por las resistencias de balanceo}
+
+El balanceo entre los dos capacitores en serie se hace con resistencias de
+1~k$\Omega$ y 330~$\Omega$. Con 2~k$\Omega$ totales, la corriente de fuga del
+banco es de unos 2,3~mA y la constante de autodescarga,
+$\tau = 15~\mathrm{F}\times 2~\mathrm{k}\Omega \approx 8{,}3$~h. Un banco
+cargado se vacía en menos de un día con el equipo apagado; el tiempo de recarga
+(107~s) es aceptable, pero conviene que el firmware no intente un cierre
+ordenado en el primer arranque tras un corte prolongado.
+
+% ----------------------------------------------------------------------------
+\subsection{¿Por qué supercapacitor y no batería?}
+\label{sec:bateria}
+
+La rúbrica pide justificar la química y la capacidad de la batería, si aplica.
+Aquí \textbf{no aplica}: el producto se alimenta de la red y no está pensado
+para operar sin ella. El banco no es una batería, es un depósito de energía para
+un cierre ordenado. Vale la pena cuantificar la diferencia para que la decisión
+quede documentada:
+
+\begin{table}[H]
+\centering
+\caption{Equivalencia energética del banco frente a baterías comerciales.}
+\label{tab:bateria}
+\small
+\begin{tabularx}{\textwidth}{@{}l r r X@{}}
+\toprule
+\textbf{Almacenamiento} & \textbf{Energía} & \textbf{Potencia} & \textbf{Comentario} \\
+\midrule
+2$\times$30~F (este diseño) & 6,6~mWh & 3,2~W & 1,5~mAh equivalentes ($Q=C\Delta V$) \\
+CR2032 (primaria) & 660~mWh & $<10$~mW & 100 veces más energía, tres órdenes menos potencia \\
+LiPo 100~mAh & 370~mWh & $\sim$1~W & Requiere protección de celda y carga CC/CV \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent El banco guarda \textbf{1,5~mAh} ($Q = C\,\Delta V = 15~\mathrm{F}
+\times 0{,}36~\mathrm{V} = 5{,}4$~C) y \textbf{6,6~mWh}: cien veces menos energía
+que una CR2032. Lo que ofrece a cambio es potencia y vida:
+
+\begin{itemize}
+  \item \textbf{Potencia.} Entrega 3,2~W sin protección ni electrónica de
+        carga; una celda de litio de ese tamaño no lo hace sin un circuito de
+        protección.
+  \item \textbf{Vida cíclica.} El fabricante especifica 500\,000 ciclos entre
+        tensión nominal y mitad de tensión, frente a los cientos de ciclos de
+        una LiPo.
+  \item \textbf{Temperatura.} $-40$ a $+70$~$^\circ$C, sin riesgo térmico ni de
+        inflamación dentro del gabinete.
+  \item \textbf{Carga.} 107~s desde vacío (Tabla~\ref{tab:carga}), sin
+        protocolo CC/CV ni controlador dedicado.
+\end{itemize}
+
+\noindent\textbf{Limitación explícita.} El banco no da autonomía de horas. Si el
+producto tuviera que operar sin red, la arquitectura cambiaría a una celda
+LiFePO$_4$ con cargador y gestión, y el presupuesto debería rehacerse con la
+energía como restricción principal en lugar de la potencia.
+
+% ----------------------------------------------------------------------------
+\section{Verificación térmica preliminar}
+\label{sec:termica}
+% ----------------------------------------------------------------------------
+
+\begin{table}[H]
+\centering
+\caption{Disipación y aumento de temperatura estimado (25~$^\circ$C de ambiente,
+$\theta_{JA}$ de hoja de datos o estimada).}
+\label{tab:termica}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r r l@{}}
+\toprule
+\textbf{Componente} & \textbf{$P_D$ típ.} & \textbf{$P_D$ máx.} & \textbf{$\Delta T$ máx.} & \textbf{Comentario} \\
+\midrule
+PS200 HLK-10M05T & 0,36~W & 1,00~W & --- & Módulo; límite de ambiente 60~$^\circ$C \\
+U200 HX1002 (SOT-23-5) & 0,16~W & 0,48~W & $\sim$119~$^\circ$C & $\theta_{JA}\approx250$~$^\circ$C/W (estimada) \\
+Alternativa AP63203 (TSOT-26) & 0,16~W & 0,48~W & 42~$^\circ$C & $\theta_{JA}=89$~$^\circ$C/W (hoja de datos) \\
+D200 / D201 (SOD-323) & 0,12~W & 0,29~W & $\sim$102~$^\circ$C & $\theta_{JA}\approx350$~$^\circ$C/W (estimada) \\
+U202 B0503S-1WR3 & 0,009~W & 0,012~W & --- & Módulo; despreciable \\
+ESP32-S3-WROOM-1-N4 & 0,31~W & 1,20~W & --- & Pico de RF; requiere plano térmico \\
+U500 RSM3485PCT & 0,10~W & 0,43~W & --- & Módulo aislado \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent \textbf{Lectura.} En operación típica ningún componente se acerca a su
+límite. En el peor caso simultáneo, en cambio:
+
+\begin{itemize}
+  \item El \textbf{HX1002} en SOT-23-5 disiparía 0,48~W. Con 250~$^\circ$C/W y
+        60~$^\circ$C de ambiente interior, la unión llegaría a
+        $\sim$179~$^\circ$C, por encima de un límite típico de 125~$^\circ$C. Un
+        buck en TSOT-26 con 89~$^\circ$C/W quedaría en 42~$^\circ$C de aumento:
+        el reemplazo de U200 no debe resolverse solo por corriente, la
+        disipación también obliga a cambiar de encapsulado.
+  \item Los diodos de OR-ing en SOD-323 son el segundo punto caliente: 0,29~W en
+        un encapsulado sin plano térmico. Recomendación: área de cobre generosa
+        en el ánodo y verificación con el prototipo.
+  \item El \textbf{HLK-10M05T} admite 60~$^\circ$C de ambiente. En un gabinete
+        cerrado con 1,5~W de pérdidas internas, la temperatura interior puede
+        superar ese valor en verano. Es el límite térmico del sistema, no de un
+        componente aislado.
+\end{itemize}
+
+% ----------------------------------------------------------------------------
+\section{Sensibilidad e incertidumbres}
+\label{sec:sensibilidad}
+% ----------------------------------------------------------------------------
+
+Los dos parámetros que más mueven el resultado son la corriente del módulo
+HaLow (sin dato de fabricante) y la capacidad real del buck.
+
+\begin{table}[H]
+\centering
+\caption{Escenarios de carga del riel \texttt{DVCC\_3v3} y utilización del buck.}
+\label{tab:escenarios}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r r@{}}
+\toprule
+\textbf{Escenario} & \textbf{$I_{3,3}$ (mA)} & \textbf{HX1002 (700~mA)} & \textbf{Buck de 2~A} \\
+\midrule
+Optimista (HaLow 100~mA, SD 100~mA) & 710 & 101~\pct & 36~\pct \\
+Base (Tabla~\ref{tab:dvcc}: HaLow 350~mA, SD 200~mA) & 1\,060 & 151~\pct & 53~\pct \\
+Con reserva de diseño de 500~mA en el ESP32 & 1\,195 & 171~\pct & 60~\pct \\
+HaLow en 500~mA (hipótesis de trabajo) & 1\,210 & 173~\pct & 61~\pct \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent No hay escenario en el que el \texttt{HX1002} tenga margen: incluso el
+más favorable (HaLow y microSD a la mitad) lo deja al 101~\pct{} de su capacidad
+nominal, y el caso base al 151~\pct{}. La disipación acompaña: a 710~mA el
+encapsulado SOT-23-5 sube unos 65~$^\circ$C, de modo que con 40~$^\circ$C de
+ambiente interior la unión ya roza los 105~$^\circ$C. Con un buck de 2~A la
+utilización quedaría entre el 36~\pct{} y el 61~\pct{} en todos los casos.
+
+\begin{table}[H]
+\centering
+\caption{Sensibilidad de la potencia de entrada al factor de potencia.}
+\label{tab:pf}
+\small
+\begin{tabularx}{\textwidth}{@{}X r r r@{}}
+\toprule
+\textbf{PF} & \textbf{$I_{in}$ típico (mA)} & \textbf{$I_{in}$ peor caso (mA)} & \textbf{Con FEM (mA)} \\
+\midrule
+0,50 & 33,3 & 83,7 & 120,2 \\
+0,60 & 27,8 & 69,7 & 100,1 \\
+0,70 & 23,8 & 59,7 & 85,8 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent Aun con PF~$=0{,}5$ y 100~V de entrada, la corriente de entrada no
+supera los 120~mA con la rama FEM activa. El fusible de 0,2~A no es un problema
+de régimen permanente; el riesgo está en la irrupción.
+
+% ----------------------------------------------------------------------------
+\section{Verificación contra el BOM}
+\label{sec:discrepancias}
+% ----------------------------------------------------------------------------
+
+Esta sección confronta el BOM y el esquemático con la hoja de datos de cada
+componente. No corrige nada: reporta y deja la decisión al equipo.
+
+\begin{table}[H]
+\centering
+\caption{Verificación de los componentes del BOM contra su hoja de datos.}
+\label{tab:discrepancias}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.7cm}X>{\raggedright\arraybackslash}p{3.3cm}@{}}
+\toprule
+\textbf{Tema} & \textbf{Evidencia} & \textbf{Impacto} \\
+\midrule
+Buck U200 & El BOM lista \texttt{HX1002-GEC} con ``Output Current 1,3~A''. La hoja de datos del fabricante titula el dispositivo \emph{700~mA Synchronous Buck} y limita el pico del inductor a 0,9~A. & \critico{} -- La carga de pico (1\,060~mA) es el 151~\pct{} de 700~mA. Prevalece la hoja de datos. \\
+\addlinespace
+Carga del banco & El BOM y el esquemático resuelven la carga con \texttt{R207}/\texttt{R201} de 3,9~$\Omega$ / 2~W; no hay interruptor de corriente limitada. & \revisar{} -- La carga inicial disipa 6,4~W en una resistencia de 2~W (Tabla~\ref{tab:carga}). \\
+\addlinespace
+FGH100M & No figura en el BOM: se conecta por los headers 500/501. Su hoja de datos V1.0.0 (preliminar) no publica corrientes (\texttt{TBD}) y declara \texttt{VBAT} 3,0--3,6~V y \texttt{VDD\_FEM} 5~V típicos. & \revisar{} -- Los 350~mA son una asignación sin respaldo. La rama de 5~V no está en el presupuesto. \\
+\addlinespace
+Fusible F300 & La hoja de datos del \texttt{HLK-10M05T} recomienda 1~A retardado; el BOM trae \texttt{JFC2410-0200TS} de 0,2~A. & \revisar{} -- Ver Tabla~\ref{tab:fusible}. \\
+\addlinespace
+No están en el BOM & \texttt{AP63203}, \texttt{TPS2553}, \texttt{SY6280} y \texttt{HLK-5M03B} aparecen en hojas de datos y en documentación descriptiva, pero no son parte del diseño capturado. & Informativo: son alternativas evaluadas, no componentes de la placa. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent \textbf{Nota de método.} Las tres primeras filas no son erratas
+documentales: cambian el resultado del presupuesto. La última sirve para que la
+revisión previa a fabricación se haga sobre una sola versión de la verdad: la
+del BOM.
+
+% ----------------------------------------------------------------------------
+\section{Conclusiones y recomendaciones}
+\label{sec:conclusiones}
+% ----------------------------------------------------------------------------
+
+\begin{table}[H]
+\centering
+\caption{Resumen ejecutivo del presupuesto de potencia.}
+\label{tab:resumen}
+\small
+\begin{tabularx}{\textwidth}{@{}X r l@{}}
+\toprule
+\textbf{Indicador} & \textbf{Valor} & \textbf{Estado} \\
+\midrule
+Carga promedio de 3,3~V (perfil de 60~s) & 216~mA / 0,71~W & \ok \\
+Carga de peor caso de 3,3~V & 1\,060~mA / 3,53~W & --- \\
+Capacidad del buck del BOM (hoja de datos) & 700~mA & \critico \\
+Capacidad del buck según el parámetro del BOM & 1\,300~mA & \revisar \\
+Carga del riel aislado & 7,6--9,8~mA (3~\pct{} de 1~W) & \ok \\
+Potencia de entrada (sin / con FEM) & 5,0~W / 7,2~W & \ok \\
+Utilización del HLK-10M05T & 40--58~\pct & \ok \\
+Energía útil del respaldo & 50--80~J & \ok \\
+Autonomía del respaldo a 3,2~W & 16--25~s & \ok \\
+Disipación del buck en el peor caso & 0,48~W & \revisar \\
+Corriente de entrada frente al fusible & 14--50~\pct{} / irrupción al 73--100~\pct{} del $I^2t$ & \revisar \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{Recomendaciones, en orden de prioridad:}
+\begin{enumerate}
+  \item \textbf{Resolver U200.} El BOM monta un \texttt{HX1002-GEC} de 700~mA y
+        la carga de pico es 1,06~A. Hay que cambiar el buck por uno de al menos
+        1,6~A (con margen) o reducir la carga, por ejemplo limitando el pico del
+        HaLow por firmware. La decisión condiciona el resto del presupuesto.
+  \item \textbf{Medir el FGH100M.} Su consumo es el mayor término no verificado
+        del presupuesto y además tiene una rama de 5~V que hoy no se contabiliza.
+  \item \textbf{Revisar la rama de carga del banco.} Verificar la topología real
+        de \texttt{R201}/\texttt{R207} y su disipación en el arranque desde cero;
+        si corresponde, volver al interruptor con límite programable.
+  \item \textbf{Validar el fusible.} Medir la irrupción del HLK en frío y
+        compararla con el $I^2t$ de 0,0682~A$^2$s; considerar 0,5--1~A
+        retardado.
+  \item \textbf{Verificar la térmica en gabinete.} El límite de 60~$^\circ$C del
+        HLK y la unión del buck son los dos puntos que definen la temperatura
+        interior admisible.
+  \item \textbf{Actualizar la documentación descriptiva.} El \texttt{README},
+        \texttt{AGENTS.md} y el diagrama de bloques describen otra revisión:
+        citan un buck de 2~A, un interruptor de carga y un módulo AC/DC que no
+        están en el BOM. Deben alinearse con el BOM y el esquemático.
+\end{enumerate}
+
+% ----------------------------------------------------------------------------
+\section{Plan de verificación en banco}
+\label{sec:verificacion}
+% ----------------------------------------------------------------------------
+
+\begin{table}[H]
+\centering
+\caption{Ensayos mínimos para cerrar el presupuesto con mediciones.}
+\label{tab:ensayos}
+\small
+\begin{tabularx}{\textwidth}{@{}c X X@{}}
+\toprule
+\textbf{\#} & \textbf{Ensayo} & \textbf{Criterio de aceptación} \\
+\midrule
+1 & Consumo de \texttt{DVCC\_3v3} por estado: reposo, medición, TX Wi-Fi, escritura SD & Cada estado dentro del 15~\pct{} del valor de la Tabla~\ref{tab:dvcc} \\
+2 & Consumo del FGH100M en TX a máxima potencia, en \texttt{VBAT} y \texttt{VDD\_FEM} & Dato para reemplazar la asignación de 350~mA \\
+3 & Eficiencia del buck a 0,3 / 0,6 / 1,0~A & $\eta \ge 85$~\pct{} y $\Delta T < 60$~$^\circ$C \\
+4 & Irrupción del HLK en frío (sonda de corriente, 10~ms) & $I^2t < 0{,}05$~A$^2$s para no consumir más del 70~\pct{} del fusible \\
+5 & Autonomía real del respaldo con la carga de cierre & $\ge 5$~s con margen del 50~\pct{} \\
+6 & Temperatura de U200, D200 y del HLK en cámara a 40~$^\circ$C & Unión $<110$~$^\circ$C; cápsula del HLK $<60$~$^\circ$C \\
+7 & Autodescarga del banco a las 24~h & Consistente con $\tau\approx8{,}3$~h \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ----------------------------------------------------------------------------
+\section*{Referencias}
+\addcontentsline{toc}{section}{Referencias}
+% ----------------------------------------------------------------------------
+
+\begin{enumerate}[label={[\arabic*]},leftmargin=2.2em]
+  \item Hi-Link. \emph{10W Ultra-Compact Power Module Series}
+        (\texttt{HLK-10M05\_Datasheet.pdf}), V1.0, dic. 2024.
+  \item HEXIN. \emph{HX1002 -- 700~mA Synchronous Buck DC/DC Converter}
+        (\texttt{HX1002-GEC\_Datasheet.pdf}).
+  \item Diodes/AP. \emph{AP63203 -- 2~A Synchronous Buck Converter}
+        (\texttt{AP63203WU-7\_Datasheet.pdf}).
+  \item Texas Instruments. \emph{ISO7741 -- Quad-Channel Digital Isolator}
+        (\texttt{ISO7741DWR\_Datasheet.pdf}), SLLSEP4G, feb. 2020.
+  \item Renergy. \emph{RN8302B Polyphase Energy Metering IC}
+        (\texttt{RN8302B\_Datasheet\_v3.pdf}).
+  \item Espressif. \emph{ESP32-S3-WROOM-1 Datasheet} v1.8
+        (\texttt{ESP32-S3-WROOM\_Module.pdf}).
+  \item Visom. \emph{RSM3485PCT -- RS-485 aislado}
+        (\texttt{RSM3485PCT\_Datasheet.pdf}).
+  \item EVISUN. \emph{B0503S-1WR3 -- DC-DC aislado 1~W}
+        (\texttt{EVISUN B0503S-1WR3.pdf}).
+  \item Texas Instruments. \emph{TPS2553 -- Adjustable Current-Limited Power
+        Switch} (\texttt{TI TPS2553DRVR.pdf}).
+  \item Quectel. \emph{FGH100M-H Wi-Fi HaLow Module Specification}, V1.0.0
+        preliminar, oct. 2024.
+  \item KAMCAP. \emph{HP-2R7-J306VYJ23 -- Supercapacitor 30~F / 2,7~V}
+        (\texttt{Supercapacitor\_Datasheet.pdf}).
+  \item JDT Fuse. \emph{JFC2410TS Time-Lag Fuse}
+        (\texttt{JFC2410-0200TS\_Datasheet.pdf}), rev. 11/05/25.
+  \item MSKSEMI. \emph{MS2A40LWS -- Schottky 2~A / 40~V}
+        (\texttt{MS2A40LWS\_Datasheet.pdf}).
+  \item Texas Instruments. \emph{TIDA-010244: Three-Phase Shunt-Based Energy
+        Metrology Reference Design} (\texttt{TI\_DUF27A\_Application\_Note.pdf}).
+  \item Equipo del proyecto. Esquemático
+        (\path{PCB/SCH/Analizador_trifasico_IoT_pcb.pdf}) y BOM
+        (\path{PCB/BOOM/Analizador_trifasico_IoT_pcb.xlsx}), 15/11/2026.
+\end{enumerate}
+
+% ----------------------------------------------------------------------------
+\appendix
+\section{Parámetros extraídos por componente}
+% ----------------------------------------------------------------------------
+
+\begin{table}[H]
+\centering
+\caption{Parámetros de hoja de datos usados en los cálculos.}
+\label{tab:parametros}
+\small
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Componente} & \textbf{Parámetros relevantes} \\
+\midrule
+HLK-10M05T & 10~W; 5~V/2~A (2,6~A corto); 85--265~VCA; $\eta \ge 80$~\pct{} a 115~V; sin carga $<0{,}1$~W; rizado $\le100$~mV; aislamiento 3000~VCA; ambiente $-25$ a $+60$~$^\circ$C; irrupción $\le10$~A \\
+HX1002 & 0,7~A; 2,2--5,5~V; $\eta$ hasta 95~\pct; $I_Q=200~\mu$A; límite de pico 0,9~A; $R_{DS(on)}$ 0,30/0,39~$\Omega$; SOT-23-5L \\
+AP63203 (alternativa) & 2~A; 3,8--32~V; $I_Q=22~\mu$A; hasta 88~\pct{} en carga ligera; $\theta_{JA}=89$~$^\circ$C/W (TSOT-26) \\
+ISO7741 & 4 canales (3/1); 5000~V$_{RMS}$; 3,3~V: 3,2~mA lado 1 y 2,7~mA lado 2 a 1~Mbps \\
+RN8302B & 3,0--3,6~V; $I_{DD}=4{,}4$~mA (EMM); 4,7~mA máx.; ADC 4,1~mA; NVM 2,3~mA \\
+RSM3485PCT & 3,15--3,45~V; 30~mA típ., 130~mA máx.; 2500~VCC; 9600~bps; 64 nodos; CON 5~mA \\
+B0503S-1WR3 & 5~V$\to$3,3~V; 1~W; 303~mA máx.; $\eta=74$~\pct; 1500~VCC \\
+
+FGH100M-H & \texttt{VBAT} 3,0--3,6~V; \texttt{VDD\_FEM} 3,0--5,25~V (típ.\ 5~V); 27~dBm máx.; 32,5~Mbps; corrientes \texttt{TBD} \\
+HP-2R7-J306VYJ23 & 30~F; 2,7~V; ESR 22~m$\Omega$ (AC) / 35~m$\Omega$ (DC); fuga 0,09~mA; 6,7~A nominal \\
+MS2A40LWS & 40~V; 2~A; $V_F=0{,}37$~V a 1~A; 0,50~V a 2~A; SOD-323 \\
+JFC2410-0200TS & 0,2~A; 250~V; 1,646~$\Omega$; $I^2t=0{,}0682$~A$^2$s; 200~\pct{} en 60~s máx. \\
+MOV-14D471K & 470~V; 300~VCA continuos; 4,5~kA \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ----------------------------------------------------------------------------
+\section{Expresiones y valores intermedios}
+% ----------------------------------------------------------------------------
+
+\noindent\textbf{Carga del riel digital.}
+\begin{align}
+I_{3,3,max} &= 355 + 10 + 200 + 130 + 350 + 4{,}6 + 10 \nonumber\\
+            &= 1\,059{,}6~\mathrm{mA} \approx 1{,}06~\mathrm{A}.
+\end{align}
+
+\noindent\textbf{Potencia del riel digital.}
+\begin{align}
+P_{3,3,max} &= 3{,}3~\mathrm{V}\times1{,}0596~\mathrm{A} = 3{,}497~\mathrm{W}.
+\end{align}
+
+\noindent\textbf{Entrada del buck.}
+\begin{align}
+P_{5,buck} &= \frac{3{,}497}{0{,}88} = 3{,}974~\mathrm{W},
+& I_{5,buck} &= 794{,}7~\mathrm{mA}.
+\end{align}
+
+\noindent\textbf{Entrada del DC-DC aislado.}
+\begin{align}
+P_{5,iso} &= \frac{3{,}3\times0{,}0098}{0{,}74} = 43{,}7~\mathrm{mW},
+& I_{5,iso} &= 8{,}7~\mathrm{mA}.
+\end{align}
+
+\noindent\textbf{Entrada de CA (peor caso, sin FEM).}
+\begin{align}
+P_{AC} &= \frac{5\times0{,}8034}{0{,}80} = 5{,}02~\mathrm{W},
+& I_{AC} &= \frac{5{,}02}{120\times0{,}60} = 69{,}7~\mathrm{mA}.
+\end{align}
+
+\noindent\textbf{Energía del respaldo (5,00~V a 3,78~V).}
+\begin{align}
+E &= \tfrac{1}{2}\times15\times\left(5{,}00^2-3{,}78^2\right) = 80{,}3~\mathrm{J},
+& t_{3,2W} &= \frac{80{,}3}{3{,}2} = 25~\mathrm{s}.
+\end{align}
+
+\noindent\textbf{Potencia promedio del riel de 3,3~V.}
+\begin{align}
+P_{3,3,prom} &= 3{,}3\times(0{,}0902+0{,}0052+0{,}0400+0{,}0599+0{,}0032+0{,}0100+0{,}0076) \nonumber\\
+&= 3{,}3\times0{,}2161 = 0{,}713~\mathrm{W}.
+\end{align}
+
+\end{document}
